@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { storage, QuoteItem, Quote, Site, Customer } from '../../../../../lib/storage'
 
@@ -20,6 +20,8 @@ function parseGroups(items: QuoteItem[]): PGroup[] {
 
 export default function QuotePreviewPage() {
   const { id: siteId, quoteId } = useParams<{ id: string; quoteId: string }>()
+  const searchParams             = useSearchParams()
+  const isCustomer               = searchParams.get('mode') === 'customer'
   const [sending, setSending]   = useState(false)
   const [quote, setQuote]       = useState<Quote | null>(null)
   const [site, setSite]         = useState<Site | null>(null)
@@ -74,7 +76,7 @@ export default function QuotePreviewPage() {
     const email = site.customerEmail || customer?.email
     if (!email) { alert('고객 이메일이 없습니다.'); return }
 
-    const previewUrl = window.location.href
+    const previewUrl = window.location.href.split('?')[0] + '?mode=customer'
     const customerName = site.customerName || customer?.name || '고객'
     const html = `
       <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
@@ -127,6 +129,7 @@ export default function QuotePreviewPage() {
           .print-doc { position: fixed !important; inset: 0 !important; overflow: visible !important; }
           @page { size: A4; margin: 10mm; }
         }
+        ${isCustomer ? 'aside { display: none !important; }' : ''}
       `}</style>
       <div className="print-doc fixed inset-0 z-[100] bg-white overflow-auto">
         <div id="quote-print-area" className="max-w-3xl mx-auto px-8 py-10">
@@ -231,24 +234,26 @@ export default function QuotePreviewPage() {
           )}
 
           {/* 하단 버튼 */}
-          <div className="no-print flex gap-3 pt-6 border-t border-slate-100">
-            <button
-              onClick={handleDownloadPdf}
-              className="flex-1 bg-slate-900 text-white py-3 rounded-xl text-sm font-medium hover:bg-slate-800 transition">
-              PDF 다운로드
-            </button>
-            <button
-              onClick={handleSendEmail}
-              disabled={sending}
-              className="flex-1 border border-slate-200 text-slate-700 py-3 rounded-xl text-sm font-medium hover:bg-slate-50 transition disabled:opacity-50 disabled:cursor-not-allowed">
-              {sending ? '발송 중...' : '이메일 발송'}
-            </button>
-            <Link
-              href={`/sites/${siteId}`}
-              className="flex-1 border border-slate-200 text-slate-700 py-3 rounded-xl text-sm font-medium hover:bg-slate-50 transition text-center">
-              뒤로가기
-            </Link>
-          </div>
+          {!isCustomer && (
+            <div className="no-print flex gap-3 pt-6 border-t border-slate-100">
+              <button
+                onClick={handleDownloadPdf}
+                className="flex-1 bg-slate-900 text-white py-3 rounded-xl text-sm font-medium hover:bg-slate-800 transition">
+                PDF 다운로드
+              </button>
+              <button
+                onClick={handleSendEmail}
+                disabled={sending}
+                className="flex-1 border border-slate-200 text-slate-700 py-3 rounded-xl text-sm font-medium hover:bg-slate-50 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                {sending ? '발송 중...' : '이메일 발송'}
+              </button>
+              <Link
+                href={`/sites/${siteId}`}
+                className="flex-1 border border-slate-200 text-slate-700 py-3 rounded-xl text-sm font-medium hover:bg-slate-50 transition text-center">
+                뒤로가기
+              </Link>
+            </div>
+          )}
 
         </div>
       </div>
