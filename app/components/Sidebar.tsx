@@ -6,9 +6,9 @@ import { usePathname } from 'next/navigation'
 const nav = [
   { href: '/dashboard', label: '대시보드'  },
   { href: '/sites',     label: '현장관리'  },
-  { href: '/sites',     label: '견적서'    },
-  { href: '/sites',     label: '입금/정산' },
-  { href: '/sites',     label: '자재관리'  },
+  { href: '/estimates', label: '견적서'    },
+  { href: '/payments',  label: '입금/정산' },
+  { href: '/materials', label: '자재관리'  },
   { href: '/as',        label: 'AS관리'   },
 ]
 
