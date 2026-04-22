@@ -83,6 +83,7 @@ export default function QuotePreviewPage() {
               { label: '현장명',    value: site.name },
               { label: '연락처',    value: site.customerPhone || customer?.phone || '-' },
               { label: '현장주소',  value: site.address },
+              { label: '이메일',    value: site.customerEmail || customer?.email || '-' },
             ].map(({ label, value }) => (
               <div key={label} className="flex gap-3 text-sm">
                 <span className="text-slate-400 w-16 shrink-0">{label}</span>
@@ -168,8 +169,9 @@ export default function QuotePreviewPage() {
             </button>
             <button
               onClick={() => {
-                if (!customer?.email) { alert('고객 이메일이 없습니다.'); return }
-                window.location.href = `mailto:${customer.email}?subject=${encodeURIComponent(`견적서 - ${site.name}`)}`
+                const email = site.customerEmail || customer?.email
+                if (!email) { alert('고객 이메일이 없습니다.'); return }
+                window.location.href = `mailto:${email}?subject=${encodeURIComponent(`견적서 - ${site.name}`)}`
               }}
               className="flex-1 border border-slate-200 text-slate-700 py-3 rounded-xl text-sm font-medium hover:bg-slate-50 transition">
               이메일 발송
