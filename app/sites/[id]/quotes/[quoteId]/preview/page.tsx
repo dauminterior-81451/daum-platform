@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
+import { useState } from 'react'
 import { storage, QuoteItem } from '../../../../../lib/storage'
 
 type PItem  = { name: string; desc: string; qty: number; unit: string; unitPrice: number }
@@ -19,6 +20,7 @@ function parseGroups(items: QuoteItem[]): PGroup[] {
 
 export default function QuotePreviewPage() {
   const { id: siteId, quoteId } = useParams<{ id: string; quoteId: string }>()
+  const [sending, setSending] = useState(false)
 
   const quote    = storage.quotes.list().find(q => q.id === quoteId)
   const site     = storage.sites.list().find(s => s.id === siteId)
@@ -45,6 +47,54 @@ export default function QuotePreviewPage() {
     document.title = `다움인테리어_견적서_${rev}차견적`
     window.print()
     document.title = prev
+  }
+
+  async function handleSendEmail() {
+    if (!site || !quote) return
+    const email = site.customerEmail || customer?.email
+    if (!email) { alert('고객 이메일이 없습니다.'); return }
+
+    const previewUrl = window.location.href
+    const customerName = site.customerName || customer?.name || '고객'
+    const html = `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
+        <h2 style="color:#1e293b;margin-bottom:4px">다움인테리어 견적서</h2>
+        <p style="color:#64748b;font-size:14px;margin-top:0">${rev}차 견적 ${rev === 1 ? '(최초)' : '(수정)'}</p>
+        <hr style="border:none;border-top:1px solid #e2e8f0;margin:16px 0"/>
+        <table style="width:100%;font-size:14px;color:#334155">
+          <tr><td style="padding:6px 0;color:#94a3b8;width:80px">고객명</td><td>${customerName}</td></tr>
+          <tr><td style="padding:6px 0;color:#94a3b8">현장명</td><td>${site.name}</td></tr>
+          <tr><td style="padding:6px 0;color:#94a3b8">견적금액</td><td style="font-weight:700;color:#0f172a">${total.toLocaleString()}원</td></tr>
+          <tr><td style="padding:6px 0;color:#94a3b8">견적일</td><td>${quote.date}</td></tr>
+        </table>
+        <hr style="border:none;border-top:1px solid #e2e8f0;margin:16px 0"/>
+        <a href="${previewUrl}" style="display:inline-block;background:#0f172a;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600">견적서 미리보기</a>
+        <p style="color:#94a3b8;font-size:12px;margin-top:24px">본 메일은 다움인테리어 업무관리 시스템에서 자동 발송되었습니다.</p>
+      </div>
+    `
+
+    setSending(true)
+    try {
+      const res = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: email,
+          subject: `[다움인테리어] 견적서 - ${site.name} (${rev}차)`,
+          html,
+        }),
+      })
+      if (res.ok) {
+        alert('발송 완료!')
+      } else {
+        const data = await res.json()
+        alert(`발송 실패: ${data.error ?? '알 수 없는 오류'}`)
+      }
+    } catch {
+      alert('발송 실패: 네트워크 오류')
+    } finally {
+      setSending(false)
+    }
   }
 
   return (
@@ -168,13 +218,10 @@ export default function QuotePreviewPage() {
               PDF 다운로드
             </button>
             <button
-              onClick={() => {
-                const email = site.customerEmail || customer?.email
-                if (!email) { alert('고객 이메일이 없습니다.'); return }
-                window.location.href = `mailto:${email}?subject=${encodeURIComponent(`견적서 - ${site.name}`)}`
-              }}
-              className="flex-1 border border-slate-200 text-slate-700 py-3 rounded-xl text-sm font-medium hover:bg-slate-50 transition">
-              이메일 발송
+              onClick={handleSendEmail}
+              disabled={sending}
+              className="flex-1 border border-slate-200 text-slate-700 py-3 rounded-xl text-sm font-medium hover:bg-slate-50 transition disabled:opacity-50 disabled:cursor-not-allowed">
+              {sending ? '발송 중...' : '이메일 발송'}
             </button>
             <Link
               href={`/sites/${siteId}`}
