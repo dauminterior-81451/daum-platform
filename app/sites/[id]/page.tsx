@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   AsItem,
   Material,
@@ -132,6 +132,21 @@ function QuoteTab({ siteId }: { siteId: string }) {
   const [groups, setGroups]       = useState<LocalGroup[]>([makeGroup()])
   const [taxMode, setTaxMode]     = useState<'exc' | 'inc' | 'none'>('exc')
   const [editingDescId, setEditingDescId] = useState<string | null>(null)
+  const isComposing = useRef(false)
+
+  function focusNext(el: HTMLElement) {
+    const form = el.closest('form')
+    if (!form) return
+    const all = Array.from(form.querySelectorAll<HTMLElement>('input, textarea'))
+    const idx = all.indexOf(el)
+    if (idx !== -1 && idx < all.length - 1) all[idx + 1].focus()
+  }
+
+  function onEnter(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key !== 'Enter') return
+    e.preventDefault()
+    if (!isComposing.current) focusNext(e.currentTarget)
+  }
 
   useEffect(() => {
     setQuotes(storage.quotes.list().filter((q) => q.siteId === siteId))
@@ -165,8 +180,7 @@ function QuoteTab({ siteId }: { siteId: string }) {
     setShow(true)
   }
 
-  function handleSave(e: React.FormEvent) {
-    e.preventDefault()
+  function handleSave() {
     const flat = flattenGroups(groups)
     if (!flat.some(i => i.unit !== '__group__')) return
     const today = new Date().toISOString().slice(0, 10)
@@ -229,7 +243,7 @@ function QuoteTab({ siteId }: { siteId: string }) {
       {/* ── 모달 ── */}
       {show && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <form onSubmit={handleSave} className="bg-white rounded-xl shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
+          <form onSubmit={(e) => e.preventDefault()} className="bg-white rounded-xl shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
             {/* 모달 헤더 */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
               <h3 className="font-semibold text-slate-800">견적서 {editId ? '수정' : '작성'}</h3>
@@ -243,6 +257,7 @@ function QuoteTab({ siteId }: { siteId: string }) {
                 <div className="flex-1 min-w-[140px]">
                   <label className="text-xs text-slate-500 mb-1 block">견적일자</label>
                   <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
+                    onKeyDown={onEnter}
                     className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-slate-400" />
                 </div>
                 <div>
@@ -268,6 +283,10 @@ function QuoteTab({ siteId }: { siteId: string }) {
                       <div className={`flex items-center gap-2 px-3 py-2 border-b ${c.bg} ${c.border}`}>
                         <input value={g.name} onChange={(e) => updateGroupName(g.id, e.target.value)}
                           placeholder={`품목 ${gIdx + 1}`}
+                          autoComplete="off"
+                          onCompositionStart={() => { isComposing.current = true }}
+                          onCompositionEnd={() => { isComposing.current = false }}
+                          onKeyDown={onEnter}
                           className="flex-1 bg-transparent text-sm font-semibold text-slate-800 outline-none placeholder-slate-400" />
                         <span className={`text-xs whitespace-nowrap shrink-0 font-medium ${c.sub}`}>
                           {groupSubtotal(g).toLocaleString()}원
@@ -290,6 +309,10 @@ function QuoteTab({ siteId }: { siteId: string }) {
                           <div key={item.id} className="grid grid-cols-12 gap-1 items-start py-1 border-b border-slate-50 last:border-0">
                             <input value={item.name} onChange={(e) => updateItem(g.id, item.id, 'name', e.target.value)}
                               placeholder="항목명"
+                              autoComplete="off"
+                              onCompositionStart={() => { isComposing.current = true }}
+                              onCompositionEnd={() => { isComposing.current = false }}
+                              onKeyDown={onEnter}
                               className="col-span-3 border border-slate-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:border-slate-400" />
                             <div className="col-span-4">
                               {editingDescId === item.id ? (
@@ -317,13 +340,19 @@ function QuoteTab({ siteId }: { siteId: string }) {
                               value={item.unitPrice || ''}
                               placeholder="0"
                               onChange={(e) => updateItem(g.id, item.id, 'unitPrice', Number(e.target.value.replace(/[^0-9]/g, '')) || 0)}
+                              onKeyDown={onEnter}
                               className="col-span-2 border border-slate-200 rounded px-2 py-1.5 text-xs text-right focus:outline-none focus:border-slate-400" />
                             <input type="text" inputMode="numeric"
                               value={item.qty || ''}
                               placeholder="0"
                               onChange={(e) => updateItem(g.id, item.id, 'qty', Number(e.target.value.replace(/[^0-9]/g, '')) || 0)}
+                              onKeyDown={onEnter}
                               className="col-span-1 border border-slate-200 rounded px-2 py-1.5 text-xs text-center focus:outline-none focus:border-slate-400" />
                             <input value={item.unit} onChange={(e) => updateItem(g.id, item.id, 'unit', e.target.value)}
+                              autoComplete="off"
+                              onCompositionStart={() => { isComposing.current = true }}
+                              onCompositionEnd={() => { isComposing.current = false }}
+                              onKeyDown={onEnter}
                               className="col-span-1 border border-slate-200 rounded px-2 py-1.5 text-xs text-center focus:outline-none focus:border-slate-400" />
                             <button type="button" onClick={() => removeItem(g.id, item.id)}
                               className="col-span-1 text-red-400 hover:text-red-600 text-xs text-center pt-1.5">✕</button>
@@ -346,6 +375,10 @@ function QuoteTab({ siteId }: { siteId: string }) {
                 <label className="text-xs text-slate-500 mb-1 block">비고</label>
                 <input type="text" value={note} onChange={(e) => setNote(e.target.value)}
                   placeholder="특이사항, 시공조건 등"
+                  autoComplete="off"
+                  onCompositionStart={() => { isComposing.current = true }}
+                  onCompositionEnd={() => { isComposing.current = false }}
+                  onKeyDown={onEnter}
                   className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-slate-400" />
               </div>
             </div>
@@ -372,7 +405,7 @@ function QuoteTab({ siteId }: { siteId: string }) {
 
             {/* 저장/취소 */}
             <div className="flex gap-2 px-6 py-4 border-t border-slate-100 shrink-0">
-              <button type="submit" className="flex-1 bg-slate-900 text-white py-2 rounded-lg text-sm hover:bg-slate-800">저장</button>
+              <button type="button" onClick={handleSave} className="flex-1 bg-slate-900 text-white py-2 rounded-lg text-sm hover:bg-slate-800">저장</button>
               <button type="button" onClick={() => setShow(false)} className="flex-1 border border-slate-200 py-2 rounded-lg text-sm hover:bg-slate-50">취소</button>
             </div>
           </form>
