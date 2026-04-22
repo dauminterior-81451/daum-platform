@@ -233,6 +233,17 @@ export default function QuotePreviewPage() {
             </div>
           )}
 
+          {/* 고객용 PDF 저장 버튼 */}
+          {isCustomer && (
+            <div className="no-print flex justify-center pt-6 border-t border-slate-100">
+              <button
+                onClick={handleDownloadPdf}
+                className="bg-slate-900 text-white px-10 py-3 rounded-xl text-sm font-semibold hover:bg-slate-700 transition">
+                PDF 저장
+              </button>
+            </div>
+          )}
+
           {/* 하단 버튼 */}
           {!isCustomer && (
             <div className="no-print flex gap-3 pt-6 border-t border-slate-100">
