@@ -17,10 +17,9 @@ export default function DashboardPage() {
   useEffect(() => {
     Promise.all([
       storage.sites.list(),
-      storage.customers.list(),
       storage.payments.list(),
       storage.quotes.list(),
-    ]).then(([sites, customers, payments, quotes]) => {
+    ]).then(([sites, payments, quotes]) => {
       const totalPayment = payments.reduce((s, p) => s + p.amount, 0)
       const totalQuote   = quotes.reduce(
         (s, q) => s + q.items.reduce((a, i) => a + i.qty * i.unitPrice, 0),
@@ -29,10 +28,11 @@ export default function DashboardPage() {
       const recentSites = [...sites]
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
         .slice(0, 5)
+      const uniqueCustomers = new Set(sites.map(s => s.customerName).filter(Boolean)).size
 
       setData({
         sites: sites.length,
-        customers: customers.length,
+        customers: uniqueCustomers,
         activeSites: sites.filter(s => s.status === '진행중').length,
         totalPayment,
         unpaid: Math.max(0, totalQuote - totalPayment),
