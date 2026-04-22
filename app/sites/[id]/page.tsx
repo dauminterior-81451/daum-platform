@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { useEffect, useRef, useState, useMemo } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   AsItem,
   Material,
@@ -10,6 +10,7 @@ import {
   Quote,
   QuoteItem,
   Settlement,
+  Site,
   StagePayment,
   storage,
 } from '../../lib/storage'
@@ -20,7 +21,7 @@ const TABS: Tab[] = ['견적서', '입금/정산', '자재관리', 'AS관리']
 export default function SiteDetailPage() {
   const { id } = useParams<{ id: string }>()
   const [tab, setTab]   = useState<Tab>('견적서')
-  const [site, setSite] = useState<import('../../lib/storage').Site | null | undefined>(undefined)
+  const [site, setSite] = useState<Site | null | undefined>(undefined)
 
   useEffect(() => {
     storage.sites.list().then(sites => setSite(sites.find(s => s.id === id) ?? null))
