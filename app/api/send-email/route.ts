@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import nodemailer from 'nodemailer'
 
+const BASE_URL =
+  process.env.NEXT_PUBLIC_BASE_URL ?? 'https://daum-platform.vercel.app'
+
 export async function POST(req: NextRequest) {
   const { to, subject, html } = await req.json()
 
@@ -15,6 +18,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: '이메일 환경변수 미설정' }, { status: 500 })
   }
 
+  // localhost URL → 실제 배포 주소로 치환
+  const finalHtml = (html as string).replace(/https?:\/\/localhost:\d+/g, BASE_URL)
+
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: { user, pass },
@@ -25,7 +31,7 @@ export async function POST(req: NextRequest) {
       from: `다움인테리어 <${user}>`,
       to,
       subject,
-      html,
+      html: finalHtml,
     })
     return NextResponse.json({ ok: true })
   } catch (err) {

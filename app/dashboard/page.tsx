@@ -15,27 +15,29 @@ export default function DashboardPage() {
   })
 
   useEffect(() => {
-    const sites     = storage.sites.list()
-    const customers = storage.customers.list()
-    const payments  = storage.payments.list()
-    const quotes    = storage.quotes.list()
+    Promise.all([
+      storage.sites.list(),
+      storage.customers.list(),
+      storage.payments.list(),
+      storage.quotes.list(),
+    ]).then(([sites, customers, payments, quotes]) => {
+      const totalPayment = payments.reduce((s, p) => s + p.amount, 0)
+      const totalQuote   = quotes.reduce(
+        (s, q) => s + q.items.reduce((a, i) => a + i.qty * i.unitPrice, 0),
+        0
+      )
+      const recentSites = [...sites]
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        .slice(0, 5)
 
-    const totalPayment = payments.reduce((s, p) => s + p.amount, 0)
-    const totalQuote   = quotes.reduce(
-      (s, q) => s + q.items.reduce((a, i) => a + i.qty * i.unitPrice, 0),
-      0
-    )
-    const recentSites = [...sites]
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-      .slice(0, 5)
-
-    setData({
-      sites: sites.length,
-      customers: customers.length,
-      activeSites: sites.filter((s) => s.status === '진행중').length,
-      totalPayment,
-      unpaid: Math.max(0, totalQuote - totalPayment),
-      recentSites,
+      setData({
+        sites: sites.length,
+        customers: customers.length,
+        activeSites: sites.filter(s => s.status === '진행중').length,
+        totalPayment,
+        unpaid: Math.max(0, totalQuote - totalPayment),
+        recentSites,
+      })
     })
   }, [])
 

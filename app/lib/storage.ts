@@ -1,3 +1,5 @@
+import { supabase } from './supabase'
+
 export type SiteStatus = '진행중' | '완료' | '보류'
 
 export interface Customer {
@@ -90,53 +92,67 @@ export interface AsItem {
   note: string
 }
 
-function load<T>(key: string, fallback: T): T {
-  if (typeof window === 'undefined') return fallback
-  try {
-    const raw = localStorage.getItem(key)
-    return raw ? (JSON.parse(raw) as T) : fallback
-  } catch {
-    return fallback
-  }
+// ── 공통 헬퍼 ──────────────────────────────────────────────────────────────────
+async function select<T>(table: string): Promise<T[]> {
+  const { data, error } = await supabase.from(table).select('*')
+  if (error) console.error(`[storage:${table}:select]`, error)
+  return (data ?? []) as T[]
 }
 
-function save<T>(key: string, data: T) {
-  if (typeof window === 'undefined') return
-  localStorage.setItem(key, JSON.stringify(data))
+async function upsertRow(table: string, item: object): Promise<void> {
+  const { error } = await supabase.from(table).upsert(item as never)
+  if (error) console.error(`[storage:${table}:upsert]`, error)
 }
 
+async function deleteRow(table: string, id: string): Promise<void> {
+  const { error } = await supabase.from(table).delete().eq('id', id)
+  if (error) console.error(`[storage:${table}:delete]`, error)
+}
+
+// ── storage ────────────────────────────────────────────────────────────────────
 export const storage = {
   customers: {
-    list: () => load<Customer[]>('customers', []),
-    save: (data: Customer[]) => save('customers', data),
+    list:   (): Promise<Customer[]>   => select<Customer>('customers'),
+    upsert: (item: Customer)          => upsertRow('customers', item),
+    remove: (id: string)              => deleteRow('customers', id),
   },
   sites: {
-    list: () => load<Site[]>('sites', []),
-    save: (data: Site[]) => save('sites', data),
+    list:   (): Promise<Site[]>       => select<Site>('sites'),
+    upsert: (item: Site)              => upsertRow('sites', item),
+    remove: (id: string)              => deleteRow('sites', id),
   },
   quotes: {
-    list: () => load<Quote[]>('quotes', []),
-    save: (data: Quote[]) => save('quotes', data),
+    list:   (): Promise<Quote[]>      => select<Quote>('quotes'),
+    upsert: (item: Quote)             => upsertRow('quotes', item),
+    remove: (id: string)              => deleteRow('quotes', id),
   },
   payments: {
-    list: () => load<Payment[]>('payments', []),
-    save: (data: Payment[]) => save('payments', data),
+    list:   (): Promise<Payment[]>    => select<Payment>('payments'),
+    upsert: (item: Payment)           => upsertRow('payments', item),
+    remove: (id: string)              => deleteRow('payments', id),
   },
   materials: {
-    list: () => load<Material[]>('materials', []),
-    save: (data: Material[]) => save('materials', data),
+    list:   (): Promise<Material[]>   => select<Material>('materials'),
+    upsert: (item: Material)          => upsertRow('materials', item),
+    remove: (id: string)              => deleteRow('materials', id),
   },
   asItems: {
-    list: () => load<AsItem[]>('asItems', []),
-    save: (data: AsItem[]) => save('asItems', data),
+    list:   (): Promise<AsItem[]>     => select<AsItem>('as_items'),
+    upsert: (item: AsItem)            => upsertRow('as_items', item),
+    remove: (id: string)              => deleteRow('as_items', id),
   },
   settlements: {
-    get: (siteId: string): Settlement | null =>
-      load<Record<string, Settlement>>('settlements', {})[siteId] ?? null,
-    save: (siteId: string, data: Settlement) => {
-      const all = load<Record<string, Settlement>>('settlements', {})
-      save('settlements', { ...all, [siteId]: data })
+    get: async (siteId: string): Promise<Settlement | null> => {
+      const { data, error } = await supabase
+        .from('settlements')
+        .select('*')
+        .eq('siteId', siteId)
+        .maybeSingle()
+      if (error) console.error('[storage:settlements:get]', error)
+      return (data ?? null) as Settlement | null
     },
+    save: (siteId: string, data: Settlement): Promise<void> =>
+      upsertRow('settlements', { ...data, siteId }),
   },
 }
 

@@ -30,21 +30,20 @@ export default function SitesPage() {
   const [filterStatus, setFilterStatus] = useState<SiteStatus | '전체'>('전체')
 
   useEffect(() => {
-    setSites(storage.sites.list())
+    storage.sites.list().then(setSites)
   }, [])
 
-  function persist(data: Site[]) {
-    storage.sites.save(data)
-    setSites(data)
-  }
-
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!form.name.trim()) return
     if (editId) {
-      persist(sites.map((s) => (s.id === editId ? { ...s, ...form } : s)))
+      const updated: Site = { ...sites.find(s => s.id === editId)!, ...form }
+      await storage.sites.upsert(updated)
+      setSites(prev => prev.map(s => s.id === editId ? updated : s))
     } else {
-      persist([...sites, { id: newId(), createdAt: new Date().toISOString(), ...form }])
+      const newSite: Site = { id: newId(), createdAt: new Date().toISOString(), ...form }
+      await storage.sites.upsert(newSite)
+      setSites(prev => [...prev, newSite])
     }
     setForm(emptyForm)
     setEditId(null)
@@ -67,9 +66,10 @@ export default function SitesPage() {
     setShowForm(true)
   }
 
-  function handleDelete(id: string) {
+  async function handleDelete(id: string) {
     if (!confirm('삭제하시겠습니까?')) return
-    persist(sites.filter((s) => s.id !== id))
+    await storage.sites.remove(id)
+    setSites(prev => prev.filter(s => s.id !== id))
   }
 
   const filtered =

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import {
   AsItem,
   Material,
@@ -19,8 +19,14 @@ const TABS: Tab[] = ['견적서', '입금/정산', '자재관리', 'AS관리']
 
 export default function SiteDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const [tab, setTab] = useState<Tab>('견적서')
-  const site = storage.sites.list().find((s) => s.id === id)
+  const [tab, setTab]   = useState<Tab>('견적서')
+  const [site, setSite] = useState<import('../../lib/storage').Site | null | undefined>(undefined)
+
+  useEffect(() => {
+    storage.sites.list().then(sites => setSite(sites.find(s => s.id === id) ?? null))
+  }, [id])
+
+  if (site === undefined) return <div className="p-6 text-sm text-gray-400">로딩 중...</div>
 
   if (!site) {
     return (
@@ -149,14 +155,8 @@ function QuoteTab({ siteId }: { siteId: string }) {
   }
 
   useEffect(() => {
-    setQuotes(storage.quotes.list().filter((q) => q.siteId === siteId))
+    storage.quotes.list().then(all => setQuotes(all.filter(q => q.siteId === siteId)))
   }, [siteId])
-
-  function persist(data: Quote[]) {
-    const all = storage.quotes.list().filter((q) => q.siteId !== siteId)
-    storage.quotes.save([...all, ...data])
-    setQuotes(data)
-  }
 
   function openNew() {
     setEditId(null)
@@ -180,22 +180,27 @@ function QuoteTab({ siteId }: { siteId: string }) {
     setShow(true)
   }
 
-  function handleSave() {
+  async function handleSave() {
     const flat = flattenGroups(groups)
     if (!flat.some(i => i.unit !== '__group__')) return
     const today = new Date().toISOString().slice(0, 10)
     if (editId) {
-      persist(quotes.map((q) => (q.id === editId ? { ...q, date, note, taxMode, items: flat, updatedAt: today } : q)))
+      const updated: Quote = { ...quotes.find(q => q.id === editId)!, date, note, taxMode, items: flat, updatedAt: today }
+      await storage.quotes.upsert(updated)
+      setQuotes(prev => prev.map(q => q.id === editId ? updated : q))
     } else {
       const nextRev = Math.max(0, ...quotes.map(q => q.revision ?? 0)) + 1
-      persist([...quotes, { id: newId(), siteId, date, note, taxMode, items: flat, revision: nextRev, createdAt: today, updatedAt: today }])
+      const newQ: Quote = { id: newId(), siteId, date, note, taxMode, items: flat, revision: nextRev, createdAt: today, updatedAt: today }
+      await storage.quotes.upsert(newQ)
+      setQuotes(prev => [...prev, newQ])
     }
     setShow(false)
   }
 
-  function handleDelete(id: string) {
+  async function handleDelete(id: string) {
     if (!confirm('삭제?')) return
-    persist(quotes.filter((q) => q.id !== id))
+    await storage.quotes.remove(id)
+    setQuotes(prev => prev.filter(q => q.id !== id))
   }
 
   // 그룹 조작
@@ -506,14 +511,14 @@ function PaymentTab({ siteId }: { siteId: string }) {
   const [data, setData] = useState<Settlement>(() => defaultSettlement(siteId))
 
   useEffect(() => {
-    const saved = storage.settlements.get(siteId)
-    if (saved) setData(saved)
-    else setData(defaultSettlement(siteId))
+    storage.settlements.get(siteId).then(saved => {
+      setData(saved ?? defaultSettlement(siteId))
+    })
   }, [siteId])
 
   function persist(next: Settlement) {
-    storage.settlements.save(siteId, next)
     setData(next)
+    storage.settlements.save(siteId, next).catch(console.error)
   }
 
   function setContractTotal(val: number) {
@@ -627,20 +632,21 @@ function MaterialTab({ siteId }: { siteId: string }) {
   const [form, setForm] = useState<MatForm>(defaultMatForm())
 
   useEffect(() => {
-    setList(storage.materials.list().filter((m) => m.siteId === siteId))
+    storage.materials.list().then(all => setList(all.filter(m => m.siteId === siteId)))
   }, [siteId])
 
-  function persist(data: Material[]) {
-    const all = storage.materials.list().filter((m) => m.siteId !== siteId)
-    storage.materials.save([...all, ...data])
-    setList(data)
-  }
-
-  function handleSave(e: React.FormEvent) {
+  async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     if (!form.name.trim()) return
-    if (editId) persist(list.map((m) => (m.id === editId ? { ...m, ...form } : m)))
-    else        persist([...list, { id: newId(), siteId, ...form }])
+    if (editId) {
+      const updated: Material = { ...list.find(m => m.id === editId)!, ...form }
+      await storage.materials.upsert(updated)
+      setList(prev => prev.map(m => m.id === editId ? updated : m))
+    } else {
+      const newMat: Material = { id: newId(), siteId, ...form }
+      await storage.materials.upsert(newMat)
+      setList(prev => [...prev, newMat])
+    }
     setShow(false)
   }
 
@@ -723,7 +729,7 @@ function MaterialTab({ siteId }: { siteId: string }) {
                     <td className="px-4 py-3 text-slate-500">{m.purchaseDate}</td>
                     <td className="px-4 py-3 text-right space-x-2 whitespace-nowrap">
                       <button onClick={() => openEdit(m)} className="text-xs text-blue-600 hover:underline">수정</button>
-                      <button onClick={() => { if (!confirm('삭제?')) return; persist(list.filter((x) => x.id !== m.id)) }} className="text-xs text-red-500 hover:underline">삭제</button>
+                      <button onClick={async () => { if (!confirm('삭제?')) return; await storage.materials.remove(m.id); setList(prev => prev.filter(x => x.id !== m.id)) }} className="text-xs text-red-500 hover:underline">삭제</button>
                     </td>
                   </tr>
                 ))}
@@ -750,22 +756,20 @@ function AsTab({ siteId }: { siteId: string }) {
   const [form, setForm] = useState({ date: '', description: '', status: '접수' as AsItem['status'], note: '' })
 
   useEffect(() => {
-    setList(storage.asItems.list().filter((a) => a.siteId === siteId))
+    storage.asItems.list().then(all => setList(all.filter(a => a.siteId === siteId)))
   }, [siteId])
 
-  function persist(data: AsItem[]) {
-    const all = storage.asItems.list().filter((a) => a.siteId !== siteId)
-    storage.asItems.save([...all, ...data])
-    setList(data)
-  }
-
-  function handleSave(e: React.FormEvent) {
+  async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     if (!form.description.trim()) return
     if (editId) {
-      persist(list.map((a) => (a.id === editId ? { ...a, ...form } : a)))
+      const updated: AsItem = { ...list.find(a => a.id === editId)!, ...form }
+      await storage.asItems.upsert(updated)
+      setList(prev => prev.map(a => a.id === editId ? updated : a))
     } else {
-      persist([...list, { id: newId(), siteId, ...form }])
+      const newItem: AsItem = { id: newId(), siteId, ...form }
+      await storage.asItems.upsert(newItem)
+      setList(prev => [...prev, newItem])
     }
     setShow(false)
   }
@@ -832,7 +836,7 @@ function AsTab({ siteId }: { siteId: string }) {
               </div>
               <div className="flex gap-2 shrink-0">
                 <button onClick={() => openEdit(a)} className="text-xs text-blue-600 hover:underline">수정</button>
-                <button onClick={() => { if (!confirm('삭제?')) return; persist(list.filter((x) => x.id !== a.id)) }} className="text-xs text-red-500 hover:underline">삭제</button>
+                <button onClick={async () => { if (!confirm('삭제?')) return; await storage.asItems.remove(a.id); setList(prev => prev.filter(x => x.id !== a.id)) }} className="text-xs text-red-500 hover:underline">삭제</button>
               </div>
             </div>
           </div>

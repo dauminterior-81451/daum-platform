@@ -2,8 +2,8 @@
 
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { useState } from 'react'
-import { storage, QuoteItem } from '../../../../../lib/storage'
+import { useEffect, useState } from 'react'
+import { storage, QuoteItem, Quote, Site, Customer } from '../../../../../lib/storage'
 
 type PItem  = { name: string; desc: string; qty: number; unit: string; unitPrice: number }
 type PGroup = { name: string; items: PItem[] }
@@ -20,11 +20,31 @@ function parseGroups(items: QuoteItem[]): PGroup[] {
 
 export default function QuotePreviewPage() {
   const { id: siteId, quoteId } = useParams<{ id: string; quoteId: string }>()
-  const [sending, setSending] = useState(false)
+  const [sending, setSending]   = useState(false)
+  const [quote, setQuote]       = useState<Quote | null>(null)
+  const [site, setSite]         = useState<Site | null>(null)
+  const [customer, setCustomer] = useState<Customer | null>(null)
+  const [loading, setLoading]   = useState(true)
 
-  const quote    = storage.quotes.list().find(q => q.id === quoteId)
-  const site     = storage.sites.list().find(s => s.id === siteId)
-  const customer = site ? storage.customers.list().find(c => c.id === site.customerId) : null
+  useEffect(() => {
+    Promise.all([
+      storage.quotes.list(),
+      storage.sites.list(),
+      storage.customers.list(),
+    ]).then(([quotes, sites, customers]) => {
+      const q = quotes.find(q => q.id === quoteId) ?? null
+      const s = sites.find(s => s.id === siteId) ?? null
+      const c = s ? (customers.find(c => c.id === s.customerId) ?? null) : null
+      setQuote(q); setSite(s); setCustomer(c)
+      setLoading(false)
+    })
+  }, [quoteId, siteId])
+
+  if (loading) return (
+    <div className="fixed inset-0 z-[100] bg-white flex items-center justify-center">
+      <p className="text-slate-400 text-sm">로딩 중...</p>
+    </div>
+  )
 
   if (!quote || !site) return (
     <div className="fixed inset-0 z-[100] bg-white flex items-center justify-center">
