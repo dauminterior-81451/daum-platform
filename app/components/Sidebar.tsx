@@ -9,7 +9,7 @@ const nav = [
   { href: '/sites',     label: '견적서'    },
   { href: '/sites',     label: '입금/정산' },
   { href: '/sites',     label: '자재관리'  },
-  { href: '/sites',     label: 'AS관리'   },
+  { href: '/as',        label: 'AS관리'   },
 ]
 
 export default function Sidebar() {
