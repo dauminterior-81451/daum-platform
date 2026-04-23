@@ -954,8 +954,10 @@ function MaterialTab({ siteId }: { siteId: string }) {
       }
       await storage.materialFiles.insert(item)
       setMatFiles(prev => [item, ...prev])
-    } catch {
-      alert('파일 업로드에 실패했습니다.')
+    } catch (err) {
+      console.error('[fileUpload:materials]', err)
+      const msg = err instanceof Error ? err.message : String(err)
+      alert(`파일 업로드에 실패했습니다.\n${msg}`)
     } finally {
       setFileUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''

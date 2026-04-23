@@ -38,8 +38,10 @@ export default function DrawingTab({ siteId }: { siteId: string }) {
       }
       await storage.drawingFiles.insert(item)
       setFiles(prev => [item, ...prev])
-    } catch {
-      alert('파일 업로드에 실패했습니다.')
+    } catch (err) {
+      console.error('[fileUpload:drawings]', err)
+      const msg = err instanceof Error ? err.message : String(err)
+      alert(`파일 업로드에 실패했습니다.\n${msg}`)
     } finally {
       setUploading(false)
       if (inputRef.current) inputRef.current.value = ''
