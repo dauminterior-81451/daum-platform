@@ -27,10 +27,36 @@ const STATUS_BADGE: Record<SiteStatus, string> = {
   completed:    'bg-green-100 text-green-700',
 }
 
+type EditForm = {
+  name: string
+  customerName: string
+  customerPhone: string
+  customerEmail: string
+  address: string
+  startDate: string
+  memo: string
+}
+
+function siteToForm(s: Site): EditForm {
+  return {
+    name:          s.name,
+    customerName:  s.customerName  ?? '',
+    customerPhone: s.customerPhone ?? '',
+    customerEmail: s.customerEmail ?? '',
+    address:       s.address,
+    startDate:     s.startDate,
+    memo:          s.memo,
+  }
+}
+
 export default function SiteDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const [tab, setTab]   = useState<Tab>('견적서')
-  const [site, setSite] = useState<Site | null | undefined>(undefined)
+  const [tab, setTab]       = useState<Tab>('견적서')
+  const [site, setSite]     = useState<Site | null | undefined>(undefined)
+  const [editing, setEditing]   = useState(false)
+  const [editForm, setEditForm] = useState<EditForm | null>(null)
+  const [saving, setSaving]     = useState(false)
+  const [toast, setToast]       = useState(false)
 
   useEffect(() => {
     storage.sites.list().then(sites => setSite(sites.find(s => s.id === id) ?? null))
@@ -42,6 +68,30 @@ export default function SiteDetailPage() {
     const updated: Site = { ...site, status: next }
     await storage.sites.upsert(updated)
     setSite(updated)
+  }
+
+  function startEdit() {
+    if (!site) return
+    setEditForm(siteToForm(site))
+    setEditing(true)
+  }
+
+  function cancelEdit() {
+    setEditing(false)
+    setEditForm(null)
+  }
+
+  async function handleSave() {
+    if (!site || !editForm) return
+    setSaving(true)
+    const updated: Site = { ...site, ...editForm }
+    await storage.sites.upsert(updated)
+    setSite(updated)
+    setEditing(false)
+    setEditForm(null)
+    setSaving(false)
+    setToast(true)
+    setTimeout(() => setToast(false), 2500)
   }
 
   if (site === undefined) return <div className="p-6 text-sm text-gray-400">로딩 중...</div>
@@ -58,9 +108,12 @@ export default function SiteDetailPage() {
   const isLocked = (t: Tab) =>
     site.status === 'pre_contract' && LOCKED_ON_PRE_CONTRACT.includes(t)
 
+  const inputCls = 'w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-slate-400'
+
   return (
     <div className="p-6">
-      <div className="mb-5">
+      {/* 헤더 */}
+      <div className="mb-4">
         <Link href="/sites" className="text-sm text-gray-400 hover:text-gray-600">← 현장목록</Link>
         <div className="flex items-center gap-3 mt-1 flex-wrap">
           <h2 className="text-xl font-bold text-gray-800">{site.name}</h2>
@@ -84,8 +137,96 @@ export default function SiteDetailPage() {
             </button>
           )}
         </div>
-        <p className="text-sm text-gray-500 mt-0.5">{site.address}</p>
       </div>
+
+      {/* 기본정보 카드 */}
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm mb-5 overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50">
+          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">기본정보</span>
+          {!editing && (
+            <button
+              onClick={startEdit}
+              className="text-xs px-3 py-1 rounded-lg border border-slate-200 text-slate-500 hover:bg-white transition"
+            >
+              수정
+            </button>
+          )}
+        </div>
+
+        {editing && editForm ? (
+          <div className="px-4 py-4 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">현장명</label>
+                <input value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} className={inputCls} />
+              </div>
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">고객명</label>
+                <input value={editForm.customerName} onChange={e => setEditForm({ ...editForm, customerName: e.target.value })} className={inputCls} />
+              </div>
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">연락처</label>
+                <input value={editForm.customerPhone} onChange={e => setEditForm({ ...editForm, customerPhone: e.target.value })} className={inputCls} />
+              </div>
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">이메일</label>
+                <input type="email" value={editForm.customerEmail} onChange={e => setEditForm({ ...editForm, customerEmail: e.target.value })} className={inputCls} />
+              </div>
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">주소</label>
+                <input value={editForm.address} onChange={e => setEditForm({ ...editForm, address: e.target.value })} className={inputCls} />
+              </div>
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">계약일</label>
+                <input type="date" value={editForm.startDate} onChange={e => setEditForm({ ...editForm, startDate: e.target.value })} className={inputCls} />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-slate-400 mb-1 block">메모</label>
+              <input value={editForm.memo} onChange={e => setEditForm({ ...editForm, memo: e.target.value })} className={inputCls} placeholder="특이사항 등" />
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="flex-1 bg-slate-900 text-white py-2 rounded-lg text-sm hover:bg-slate-800 transition disabled:opacity-50"
+              >
+                {saving ? '저장 중...' : '저장'}
+              </button>
+              <button
+                onClick={cancelEdit}
+                className="flex-1 border border-slate-200 text-slate-600 py-2 rounded-lg text-sm hover:bg-slate-50 transition"
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-x-8 gap-y-2 px-4 py-4 text-sm">
+            {[
+              { label: '현장명', value: site.name },
+              { label: '고객명', value: site.customerName  || '—' },
+              { label: '연락처', value: site.customerPhone || '—' },
+              { label: '이메일', value: site.customerEmail || '—' },
+              { label: '주소',   value: site.address       || '—' },
+              { label: '계약일', value: site.startDate     || '—' },
+            ].map(({ label, value }) => (
+              <div key={label} className="flex gap-3">
+                <span className="text-slate-400 w-14 shrink-0">{label}</span>
+                <span className="text-slate-700 font-medium">{value}</span>
+              </div>
+            ))}
+            {site.memo && (
+              <div className="col-span-2 flex gap-3">
+                <span className="text-slate-400 w-14 shrink-0">메모</span>
+                <span className="text-slate-700">{site.memo}</span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* 탭 */}
       <div className="flex gap-1 mb-5 border-b border-gray-200">
         {TABS.map((t) => {
           const locked = isLocked(t)
@@ -108,10 +249,18 @@ export default function SiteDetailPage() {
           )
         })}
       </div>
+
       {tab === '견적서' && <QuoteTab siteId={id} />}
       {tab === '입금/정산' && <PaymentTab siteId={id} />}
       {tab === '자재관리' && <MaterialTab siteId={id} />}
       {tab === 'AS관리' && <AsTab siteId={id} />}
+
+      {/* 토스트 */}
+      {toast && (
+        <div className="fixed bottom-6 right-6 bg-slate-900 text-white text-sm px-4 py-2.5 rounded-xl shadow-lg">
+          저장되었습니다
+        </div>
+      )}
     </div>
   )
 }
