@@ -100,6 +100,29 @@ export interface AsItem {
   note: string
 }
 
+export interface MaterialFile {
+  id: string
+  siteId: string
+  name: string
+  url: string
+  storagePath: string
+  fileType: string
+  size: number
+  memo: string
+  createdAt: string
+}
+
+export interface DrawingFile {
+  id: string
+  siteId: string
+  name: string
+  url: string
+  storagePath: string
+  fileType: string
+  size: number
+  createdAt: string
+}
+
 export interface EmailLog {
   id: string
   siteId: string | null
@@ -174,6 +197,38 @@ export const storage = {
     },
     save: (siteId: string, data: Settlement): Promise<void> =>
       upsertRow('settlements', { ...data, siteId }),
+  },
+  materialFiles: {
+    listBySite: async (siteId: string): Promise<MaterialFile[]> => {
+      const { data, error } = await supabase
+        .from('material_files')
+        .select('*')
+        .eq('siteId', siteId)
+        .order('createdAt', { ascending: false })
+      if (error) console.error('[storage:material_files]', error)
+      return (data ?? []) as MaterialFile[]
+    },
+    insert: async (item: MaterialFile): Promise<void> => {
+      const { error } = await supabase.from('material_files').insert(item)
+      if (error) console.error('[storage:material_files:insert]', error)
+    },
+    remove: (id: string) => deleteRow('material_files', id),
+  },
+  drawingFiles: {
+    listBySite: async (siteId: string): Promise<DrawingFile[]> => {
+      const { data, error } = await supabase
+        .from('drawing_files')
+        .select('*')
+        .eq('siteId', siteId)
+        .order('createdAt', { ascending: false })
+      if (error) console.error('[storage:drawing_files]', error)
+      return (data ?? []) as DrawingFile[]
+    },
+    insert: async (item: DrawingFile): Promise<void> => {
+      const { error } = await supabase.from('drawing_files').insert(item)
+      if (error) console.error('[storage:drawing_files:insert]', error)
+    },
+    remove: (id: string) => deleteRow('drawing_files', id),
   },
   emailLogs: {
     list: async (): Promise<EmailLog[]> => {

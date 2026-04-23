@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import {
   AsItem,
   Material,
+  MaterialFile,
   newId,
   Quote,
   QuoteItem,
@@ -16,10 +17,12 @@ import {
   StagePayment,
   storage,
 } from '../../lib/storage'
+import { fileStorage } from '../../lib/supabase'
+import DrawingTab from './DrawingTab'
 
-type Tab = '견적서' | '입금/정산' | '자재관리' | 'AS관리'
-const TABS: Tab[] = ['견적서', '입금/정산', '자재관리', 'AS관리']
-const LOCKED_ON_PRE_CONTRACT: Tab[] = ['입금/정산', '자재관리', 'AS관리']
+type Tab = '견적서' | '입금/정산' | '자재관리' | '도면' | 'AS관리'
+const TABS: Tab[] = ['견적서', '입금/정산', '자재관리', '도면', 'AS관리']
+const LOCKED_ON_PRE_CONTRACT: Tab[] = ['입금/정산', '자재관리', '도면', 'AS관리']
 
 const STATUS_BADGE: Record<SiteStatus, string> = {
   pre_contract: 'bg-slate-100 text-slate-600',
@@ -253,6 +256,7 @@ export default function SiteDetailPage() {
       {tab === '견적서' && <QuoteTab siteId={id} />}
       {tab === '입금/정산' && <PaymentTab siteId={id} />}
       {tab === '자재관리' && <MaterialTab siteId={id} />}
+      {tab === '도면' && <DrawingTab siteId={id} />}
       {tab === 'AS관리' && <AsTab siteId={id} />}
 
       {/* 토스트 */}
@@ -894,13 +898,17 @@ type MatForm = { name: string; spec: string; qty: number; unit: string; unitPric
 const defaultMatForm = (): MatForm => ({ name: '', spec: '', qty: 1, unit: '개', unitPrice: 0, supplier: '', purchaseDate: new Date().toISOString().slice(0, 10), note: '' })
 
 function MaterialTab({ siteId }: { siteId: string }) {
-  const [list, setList] = useState<Material[]>([])
-  const [show, setShow] = useState(false)
-  const [editId, setEditId] = useState<string | null>(null)
-  const [form, setForm] = useState<MatForm>(defaultMatForm())
+  const [list, setList]         = useState<Material[]>([])
+  const [show, setShow]         = useState(false)
+  const [editId, setEditId]     = useState<string | null>(null)
+  const [form, setForm]         = useState<MatForm>(defaultMatForm())
+  const [matFiles, setMatFiles] = useState<MaterialFile[]>([])
+  const [fileUploading, setFileUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     storage.materials.list().then(all => setList(all.filter(m => m.siteId === siteId)))
+    storage.materialFiles.listBySite(siteId).then(setMatFiles)
   }, [siteId])
 
   async function handleSave(e: React.FormEvent) {
@@ -924,19 +932,55 @@ function MaterialTab({ siteId }: { siteId: string }) {
     setShow(true)
   }
 
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setFileUploading(true)
+    try {
+      const path = `${siteId}/${Date.now()}-${file.name}`
+      const url  = await fileStorage.upload('materials', path, file)
+      const item: MaterialFile = {
+        id:          newId(),
+        siteId,
+        name:        file.name,
+        url,
+        storagePath: path,
+        fileType:    file.type,
+        size:        file.size,
+        memo:        '',
+        createdAt:   new Date().toISOString().slice(0, 10),
+      }
+      await storage.materialFiles.insert(item)
+      setMatFiles(prev => [item, ...prev])
+    } catch {
+      alert('파일 업로드에 실패했습니다.')
+    } finally {
+      setFileUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  async function handleFileDelete(f: MaterialFile) {
+    if (!confirm('파일을 삭제하시겠습니까?')) return
+    await fileStorage.remove('materials', f.storagePath)
+    await storage.materialFiles.remove(f.id)
+    setMatFiles(prev => prev.filter(x => x.id !== f.id))
+  }
+
   const totalCost = list.reduce((s, m) => s + m.qty * m.unitPrice, 0)
 
   const FIELDS: { f: keyof MatForm; label: string; type: string; required?: boolean }[] = [
-    { f: 'name',         label: '자재명',   type: 'text',   required: true },
-    { f: 'spec',         label: '규격',     type: 'text' },
-    { f: 'qty',          label: '수량',     type: 'number' },
-    { f: 'unitPrice',    label: '단가',     type: 'number' },
-    { f: 'supplier',     label: '공급업체', type: 'text' },
+    { f: 'name',         label: '자재명',     type: 'text',   required: true },
+    { f: 'spec',         label: '규격',       type: 'text' },
+    { f: 'qty',          label: '수량',       type: 'number' },
+    { f: 'unitPrice',    label: '단가',       type: 'number' },
+    { f: 'supplier',     label: '공급업체',   type: 'text' },
     { f: 'purchaseDate', label: '입고예정일', type: 'date' },
   ]
 
   return (
     <div>
+      {/* 자재 항목 */}
       <div className="flex justify-between items-center mb-3">
         <span className="text-sm text-slate-600">
           총 자재비: <strong className="text-orange-600">{totalCost.toLocaleString()}원</strong>
@@ -1003,6 +1047,60 @@ function MaterialTab({ siteId }: { siteId: string }) {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+      </div>
+
+      {/* 첨부 파일 */}
+      <div className="mt-6">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-sm font-medium text-slate-700">
+            첨부 파일
+            <span className="text-xs text-slate-400 font-normal ml-1">이미지 · PDF</span>
+          </span>
+          <div className="flex items-center gap-2">
+            {fileUploading && <span className="text-xs text-slate-400">업로드 중...</span>}
+            <label className={`cursor-pointer text-xs px-3 py-1.5 rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition ${fileUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+              + 파일 첨부
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,.pdf"
+                className="hidden"
+                onChange={handleFileUpload}
+                disabled={fileUploading}
+              />
+            </label>
+          </div>
+        </div>
+
+        {matFiles.length === 0 ? (
+          <div className="border border-dashed border-slate-200 rounded-xl py-8 text-center">
+            <p className="text-xs text-slate-400">첨부된 파일이 없습니다.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+            {matFiles.map(f => (
+              <div key={f.id} className="border border-slate-200 rounded-xl overflow-hidden bg-white">
+                {f.fileType.startsWith('image/') ? (
+                  <a href={f.url} target="_blank" rel="noopener noreferrer">
+                    <img src={f.url} alt={f.name} className="w-full h-24 object-cover hover:opacity-90 transition" />
+                  </a>
+                ) : (
+                  <a href={f.url} target="_blank" rel="noopener noreferrer"
+                    className="flex flex-col items-center justify-center h-24 bg-slate-50 hover:bg-slate-100 transition">
+                    <span className="text-3xl">📄</span>
+                    <span className="text-xs text-slate-500 mt-1 font-semibold">
+                      {(f.name.split('.').pop() ?? 'FILE').toUpperCase()}
+                    </span>
+                  </a>
+                )}
+                <div className="px-2 py-2 border-t border-slate-100 flex items-center justify-between gap-1">
+                  <p className="text-xs text-slate-600 truncate flex-1" title={f.name}>{f.name}</p>
+                  <button onClick={() => handleFileDelete(f)} className="text-xs text-red-400 hover:text-red-600 shrink-0">삭제</button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

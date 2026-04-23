@@ -5,3 +5,15 @@ const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://placeholder.supabas
 const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? 'placeholder-key'
 
 export const supabase = createClient(url, key)
+
+export const fileStorage = {
+  upload: async (bucket: string, path: string, file: File): Promise<string> => {
+    const { error } = await supabase.storage.from(bucket).upload(path, file, { upsert: true })
+    if (error) throw error
+    return supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl
+  },
+  remove: async (bucket: string, path: string): Promise<void> => {
+    const { error } = await supabase.storage.from(bucket).remove([path])
+    if (error) console.error(`[fileStorage:${bucket}:remove]`, error)
+  },
+}
