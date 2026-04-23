@@ -2,8 +2,8 @@
 
 import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
-import { storage, QuoteItem, Quote, Site, Customer } from '../../../../../lib/storage'
+import { useEffect, useState, useCallback } from 'react'
+import { storage, QuoteItem, Quote, Site, Customer, EmailLog } from '../../../../../lib/storage'
 
 type PItem  = { name: string; desc: string; qty: number; unit: string; unitPrice: number }
 type PGroup = { name: string; items: PItem[] }
@@ -27,6 +27,11 @@ export default function QuotePreviewPage() {
   const [site, setSite]         = useState<Site | null>(null)
   const [customer, setCustomer] = useState<Customer | null>(null)
   const [loading, setLoading]   = useState(true)
+  const [emailLogs, setEmailLogs] = useState<EmailLog[]>([])
+
+  const fetchLogs = useCallback(() => {
+    storage.emailLogs.listByEstimate(quoteId).then(setEmailLogs)
+  }, [quoteId])
 
   useEffect(() => {
     Promise.all([
@@ -41,6 +46,10 @@ export default function QuotePreviewPage() {
       setLoading(false)
     })
   }, [quoteId, siteId])
+
+  useEffect(() => {
+    if (!isCustomer) fetchLogs()
+  }, [isCustomer, fetchLogs])
 
   if (loading) return (
     <div className="fixed inset-0 z-[100] bg-white flex items-center justify-center">
@@ -104,13 +113,19 @@ export default function QuotePreviewPage() {
           to: email,
           subject: `[다움인테리어] 견적서 - ${site.name} (${rev}차)`,
           html,
+          siteId,
+          estimateId: quoteId,
+          recipientName: customerName,
+          sendType: 'estimate',
         }),
       })
       if (res.ok) {
         alert('발송 완료!')
+        fetchLogs()
       } else {
         const data = await res.json()
         alert(`발송 실패: ${data.error ?? '알 수 없는 오류'}`)
+        fetchLogs()
       }
     } catch {
       alert('발송 실패: 네트워크 오류')
@@ -263,6 +278,49 @@ export default function QuotePreviewPage() {
                 className="flex-1 border border-slate-200 text-slate-700 py-3 rounded-xl text-sm font-medium hover:bg-slate-50 transition text-center">
                 뒤로가기
               </Link>
+            </div>
+          )}
+
+          {/* 발송 이력 */}
+          {!isCustomer && (
+            <div className="no-print mt-8 border-t border-slate-100 pt-6">
+              <h3 className="text-sm font-semibold text-slate-700 mb-3">발송 이력</h3>
+              {emailLogs.length === 0 ? (
+                <p className="text-xs text-slate-400">발송 이력이 없습니다.</p>
+              ) : (
+                <div className="border border-slate-200 rounded-xl overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead className="bg-slate-50 text-slate-500">
+                      <tr>
+                        <th className="px-4 py-2.5 text-left font-medium">발송 시각</th>
+                        <th className="px-4 py-2.5 text-left font-medium">받는 사람</th>
+                        <th className="px-4 py-2.5 text-left font-medium">상태</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {emailLogs.map((log, i) => (
+                        <tr key={log.id} className={`border-t border-slate-100 ${i % 2 === 1 ? 'bg-slate-50/50' : ''}`}>
+                          <td className="px-4 py-2.5 text-slate-600">
+                            {new Date(log.sentAt).toLocaleString('ko-KR', { dateStyle: 'short', timeStyle: 'short' })}
+                          </td>
+                          <td className="px-4 py-2.5 text-slate-700">
+                            {log.recipientName ? `${log.recipientName} (${log.recipientEmail})` : log.recipientEmail}
+                          </td>
+                          <td className="px-4 py-2.5">
+                            {log.status === 'success' ? (
+                              <span className="inline-flex items-center gap-1 text-emerald-600 font-medium">✅ 성공</span>
+                            ) : log.status === 'failed' ? (
+                              <span className="inline-flex items-center gap-1 text-red-500 font-medium" title={log.errorMessage ?? ''}>❌ 실패</span>
+                            ) : (
+                              <span className="text-slate-400">대기</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
 

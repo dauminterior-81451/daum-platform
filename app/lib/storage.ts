@@ -92,6 +92,19 @@ export interface AsItem {
   note: string
 }
 
+export interface EmailLog {
+  id: string
+  siteId: string | null
+  estimateId: string | null
+  recipientEmail: string
+  recipientName: string | null
+  subject: string
+  sendType: 'estimate' | 'contract' | 'other'
+  status: 'success' | 'failed' | 'pending'
+  errorMessage: string | null
+  sentAt: string
+}
+
 // ── 공통 헬퍼 ──────────────────────────────────────────────────────────────────
 async function select<T>(table: string): Promise<T[]> {
   const { data, error } = await supabase.from(table).select('*')
@@ -153,6 +166,29 @@ export const storage = {
     },
     save: (siteId: string, data: Settlement): Promise<void> =>
       upsertRow('settlements', { ...data, siteId }),
+  },
+  emailLogs: {
+    list: async (): Promise<EmailLog[]> => {
+      const { data, error } = await supabase
+        .from('email_logs')
+        .select('*')
+        .order('sentAt', { ascending: false })
+      if (error) console.error('[storage:email_logs:list]', error)
+      return (data ?? []) as EmailLog[]
+    },
+    listByEstimate: async (estimateId: string): Promise<EmailLog[]> => {
+      const { data, error } = await supabase
+        .from('email_logs')
+        .select('*')
+        .eq('estimateId', estimateId)
+        .order('sentAt', { ascending: false })
+      if (error) console.error('[storage:email_logs:listByEstimate]', error)
+      return (data ?? []) as EmailLog[]
+    },
+    insert: async (log: Omit<EmailLog, 'id' | 'sentAt'>): Promise<void> => {
+      const { error } = await supabase.from('email_logs').insert(log)
+      if (error) console.error('[storage:email_logs:insert]', error)
+    },
   },
 }
 
