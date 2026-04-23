@@ -1,7 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { createAuthClient } from '../lib/supabase'
 
 const nav = [
   { href: '/dashboard',   label: '대시보드'  },
@@ -15,6 +17,22 @@ const nav = [
 
 export default function Sidebar() {
   const pathname = usePathname()
+  const router   = useRouter()
+  const [email, setEmail] = useState<string | null>(null)
+
+  useEffect(() => {
+    const auth = createAuthClient()
+    auth.auth.getSession().then(({ data: { session } }) => {
+      setEmail(session?.user?.email ?? null)
+    })
+  }, [])
+
+  async function handleLogout() {
+    const auth = createAuthClient()
+    await auth.auth.signOut()
+    router.push('/login')
+    router.refresh()
+  }
 
   return (
     <aside className="w-56 shrink-0 bg-white border-r border-slate-200 flex flex-col min-h-screen">
@@ -43,8 +61,17 @@ export default function Sidebar() {
           )
         })}
       </nav>
-      <div className="px-5 py-4 border-t border-slate-100 text-xs text-slate-400">
-        v1.0.0
+      <div className="px-4 py-4 border-t border-slate-100">
+        {email && (
+          <p className="text-xs text-slate-400 truncate px-1 mb-2" title={email}>{email}</p>
+        )}
+        <button
+          onClick={handleLogout}
+          className="w-full text-left text-xs text-slate-500 hover:text-slate-800 px-3 py-2 rounded-lg hover:bg-slate-50 transition"
+        >
+          로그아웃
+        </button>
+        <p className="text-xs text-slate-400 px-3 mt-2">v1.0.0</p>
       </div>
     </aside>
   )
