@@ -939,7 +939,8 @@ function MaterialTab({ siteId }: { siteId: string }) {
     if (!file) return
     setFileUploading(true)
     try {
-      const path = `${siteId}/${Date.now()}-${file.name}`
+      const ext  = file.name.includes('.') ? file.name.split('.').pop() : ''
+      const path = `${siteId}/${Date.now()}_${Math.random().toString(36).slice(2, 6)}${ext ? '.' + ext : ''}`
       const url  = await fileStorage.upload('materials', path, file)
       const item: MaterialFile = {
         id:          newId(),
