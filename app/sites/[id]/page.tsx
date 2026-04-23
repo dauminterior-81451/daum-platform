@@ -623,6 +623,14 @@ function PaymentTab({ siteId }: { siteId: string }) {
     persist({ ...data, [key]: { ...data[key], [field]: value } })
   }
 
+  function handleRatioChange(key: StageKey, raw: string) {
+    const sanitized = raw.replace(/[^0-9]/g, '')
+    const pct       = Math.min(100, Math.max(0, Number(sanitized) || 0))
+    const ratio     = pct / 100
+    const amount    = Math.round((data.contractTotal || 0) * ratio)
+    persist({ ...data, [key]: { ...data[key], ratio, amount } })
+  }
+
   const STAGES: StageKey[] = ['deposit', 'startup', 'interim', 'balance']
   const totalPaid  = STAGES.filter(k => data[k].paid).reduce((s, k) => s + (data[k].amount || 0), 0)
   const outstanding = (data.contractTotal || 0) - totalPaid
@@ -674,9 +682,16 @@ function PaymentTab({ siteId }: { siteId: string }) {
         return (
           <div key={key} className={`bg-white rounded-xl border shadow-sm overflow-hidden ${s.paid ? 'border-green-200' : 'border-slate-200'}`}>
             <div className={`flex items-center justify-between px-4 py-3 border-b ${s.paid ? 'bg-green-50 border-green-100' : 'bg-slate-50 border-slate-100'}`}>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <span className="text-sm font-semibold text-slate-700">{STAGE_LABELS[key]}</span>
-                <span className="text-xs text-slate-400">{Math.round(DEFAULT_RATIOS[key] * 100)}%</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={Math.round((s.ratio ?? DEFAULT_RATIOS[key]) * 100)}
+                  onChange={(e) => handleRatioChange(key, e.target.value)}
+                  className="w-10 border border-slate-200 rounded px-1.5 py-0.5 text-xs text-center focus:outline-none focus:border-slate-400"
+                />
+                <span className="text-xs text-slate-400">%</span>
               </div>
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <span className="text-xs text-slate-500">입금완료</span>
