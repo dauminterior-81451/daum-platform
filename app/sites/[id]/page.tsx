@@ -902,6 +902,7 @@ function MaterialTab({ siteId }: { siteId: string }) {
   const [show, setShow]         = useState(false)
   const [editId, setEditId]     = useState<string | null>(null)
   const [form, setForm]         = useState<MatForm>(defaultMatForm())
+  const [priceInput, setPriceInput] = useState('0')
   const [matFiles, setMatFiles] = useState<MaterialFile[]>([])
   const [fileUploading, setFileUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -929,6 +930,7 @@ function MaterialTab({ siteId }: { siteId: string }) {
   function openEdit(m: Material) {
     setEditId(m.id)
     setForm({ name: m.name, spec: m.spec ?? '', qty: m.qty, unit: m.unit, unitPrice: m.unitPrice, supplier: m.supplier ?? '', purchaseDate: m.purchaseDate, note: m.note })
+    setPriceInput(m.unitPrice ? m.unitPrice.toLocaleString() : '0')
     setShow(true)
   }
 
@@ -969,15 +971,6 @@ function MaterialTab({ siteId }: { siteId: string }) {
 
   const totalCost = list.reduce((s, m) => s + m.qty * m.unitPrice, 0)
 
-  const FIELDS: { f: keyof MatForm; label: string; type: string; required?: boolean }[] = [
-    { f: 'name',         label: '자재명',     type: 'text',   required: true },
-    { f: 'spec',         label: '규격',       type: 'text' },
-    { f: 'qty',          label: '수량',       type: 'number' },
-    { f: 'unitPrice',    label: '단가',       type: 'number' },
-    { f: 'supplier',     label: '공급업체',   type: 'text' },
-    { f: 'purchaseDate', label: '입고예정일', type: 'date' },
-  ]
-
   return (
     <div>
       {/* 자재 항목 */}
@@ -986,7 +979,7 @@ function MaterialTab({ siteId }: { siteId: string }) {
           총 자재비: <strong className="text-orange-600">{totalCost.toLocaleString()}원</strong>
         </span>
         <button
-          onClick={() => { setEditId(null); setForm(defaultMatForm()); setShow(true) }}
+          onClick={() => { setEditId(null); setForm(defaultMatForm()); setPriceInput('0'); setShow(true) }}
           className="bg-slate-900 text-white text-sm px-4 py-2 rounded-lg hover:bg-slate-800"
         >
           + 자재 추가
@@ -995,21 +988,127 @@ function MaterialTab({ siteId }: { siteId: string }) {
 
       {show && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <form onSubmit={handleSave} className="bg-white rounded-xl shadow-lg p-6 w-full max-w-sm space-y-3">
+          <form onSubmit={handleSave} className="bg-white rounded-xl shadow-lg p-6 w-full max-w-sm space-y-3 overflow-y-auto max-h-[90vh]">
             <h3 className="font-semibold text-slate-800">자재 {editId ? '수정' : '추가'}</h3>
-            {FIELDS.map(({ f, label, type, required }) => (
-              <div key={f}>
-                <label className="text-xs text-slate-500 mb-1 block">{label}{required && ' *'}</label>
-                <input
-                  type={type}
-                  value={(form as Record<string, string | number>)[f]}
-                  required={required}
-                  min={type === 'number' ? 0 : undefined}
-                  onChange={(e) => setForm({ ...form, [f]: type === 'number' ? Number(e.target.value) : e.target.value })}
-                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-slate-400"
-                />
+
+            {/* 자재명 */}
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">자재명 *</label>
+              <input
+                lang="ko"
+                type="text"
+                required
+                value={form.name}
+                onChange={e => setForm({ ...form, name: e.target.value })}
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-slate-400"
+                placeholder="자재명 입력"
+              />
+            </div>
+
+            {/* 규격 */}
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">규격</label>
+              <input
+                type="text"
+                value={form.spec}
+                onChange={e => setForm({ ...form, spec: e.target.value })}
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-slate-400"
+              />
+            </div>
+
+            {/* 단위 */}
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">단위</label>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {['개', 'EA', 'm', 'm²', 'kg', '롤'].map(u => (
+                  <button
+                    key={u}
+                    type="button"
+                    onClick={() => setForm({ ...form, unit: u })}
+                    className={`px-2.5 py-1 rounded-md text-xs border transition ${
+                      form.unit === u
+                        ? 'bg-slate-900 text-white border-slate-900'
+                        : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
+                    }`}
+                  >
+                    {u}
+                  </button>
+                ))}
               </div>
-            ))}
+              <input
+                type="text"
+                value={form.unit}
+                onChange={e => setForm({ ...form, unit: e.target.value })}
+                placeholder="직접 입력"
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-slate-400"
+              />
+            </div>
+
+            {/* 수량 */}
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">수량</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={form.qty}
+                onChange={e => {
+                  const n = parseInt(e.target.value.replace(/[^0-9]/g, ''), 10)
+                  setForm({ ...form, qty: isNaN(n) ? 0 : n })
+                }}
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-slate-400"
+              />
+            </div>
+
+            {/* 단가 */}
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">단가</label>
+              <div className="flex items-center gap-1">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={priceInput}
+                  onFocus={() => { if (priceInput === '0') setPriceInput('') }}
+                  onBlur={() => { if (!priceInput) { setPriceInput('0'); setForm(f => ({ ...f, unitPrice: 0 })) } }}
+                  onChange={e => {
+                    const raw = e.target.value.replace(/[^0-9]/g, '')
+                    const num = raw === '' ? 0 : parseInt(raw, 10)
+                    setPriceInput(raw === '' ? '' : num.toLocaleString())
+                    setForm(f => ({ ...f, unitPrice: num }))
+                  }}
+                  className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-slate-400 text-right"
+                />
+                <span className="text-sm text-slate-400 shrink-0">원</span>
+              </div>
+            </div>
+
+            {/* 금액 합계 */}
+            <div className="bg-slate-50 rounded-lg px-3 py-2 flex items-center justify-between">
+              <span className="text-xs text-slate-500">금액 합계</span>
+              <span className="text-sm font-semibold text-orange-600">{(form.qty * form.unitPrice).toLocaleString()}원</span>
+            </div>
+
+            {/* 공급업체 */}
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">공급업체</label>
+              <input
+                type="text"
+                value={form.supplier}
+                onChange={e => setForm({ ...form, supplier: e.target.value })}
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-slate-400"
+              />
+            </div>
+
+            {/* 입고예정일 */}
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">입고예정일</label>
+              <input
+                type="date"
+                value={form.purchaseDate}
+                onChange={e => setForm({ ...form, purchaseDate: e.target.value })}
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-slate-400"
+              />
+            </div>
+
             <div className="flex gap-2 pt-1">
               <button type="submit" className="flex-1 bg-slate-900 text-white py-2 rounded-lg text-sm hover:bg-slate-800">저장</button>
               <button type="button" onClick={() => setShow(false)} className="flex-1 border border-slate-200 py-2 rounded-lg text-sm hover:bg-slate-50">취소</button>
