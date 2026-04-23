@@ -23,6 +23,12 @@ function calcQuoteTotal(quotes: Quote[], siteId: string): number {
   return tm === 'exc' ? Math.round(supply * 1.1) : supply
 }
 
+function calcSettlementPaid(s: Settlement): number {
+  return (['deposit', 'startup', 'interim', 'balance'] as const)
+    .filter(k => s[k].paid)
+    .reduce((sum, k) => sum + (s[k].amount || 0), 0)
+}
+
 export default function PaymentsPage() {
   const [rows, setRows] = useState<Row[]>([])
 
@@ -30,19 +36,16 @@ export default function PaymentsPage() {
     Promise.all([
       storage.sites.list(),
       storage.quotes.list(),
-      storage.payments.list(),
-    ]).then(async ([sites, quotes, payments]) => {
+    ]).then(async ([sites, quotes]) => {
       const settled = await Promise.all(
         sites.map(s => storage.settlements.get(s.id))
       )
       const r: Row[] = sites.map((site, i) => {
-        const settlement = settled[i] as Settlement | null
+        const settlement    = settled[i] as Settlement | null
         const contractTotal = settlement?.contractTotal ?? calcQuoteTotal(quotes, site.id)
-        const paid = payments
-          .filter(p => p.siteId === site.id)
-          .reduce((s, p) => s + p.amount, 0)
-        const unpaid = Math.max(0, contractTotal - paid)
-        const status = unpaid === 0 && contractTotal > 0 ? '완납' : contractTotal === 0 ? '—' : '미수'
+        const paid          = settlement ? calcSettlementPaid(settlement) : 0
+        const unpaid        = Math.max(0, contractTotal - paid)
+        const status        = contractTotal === 0 ? '—' : unpaid === 0 ? '완납' : '미수'
         return { site, contractTotal, paid, unpaid, status }
       })
       setRows(r.sort((a, b) => b.site.createdAt.localeCompare(a.site.createdAt)))

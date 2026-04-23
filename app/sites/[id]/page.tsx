@@ -501,11 +501,42 @@ function QuoteTab({ siteId }: { siteId: string }) {
 }
 
 // ─── 입금/정산 ────────────────────────────────────────────────────────────────
-type StageKey = 'deposit' | 'interim' | 'balance'
-const STAGE_LABELS: Record<StageKey, string> = { deposit: '계약금', interim: '중도금', balance: '잔금' }
-function defaultStage(): StagePayment { return { amount: 0, scheduledDate: '', paidDate: '', paid: false } }
+type StageKey = 'deposit' | 'startup' | 'interim' | 'balance'
+const STAGE_LABELS: Record<StageKey, string> = {
+  deposit: '계약금',
+  startup: '착수금',
+  interim: '중도금',
+  balance: '잔금',
+}
+const DEFAULT_RATIOS: Record<StageKey, number> = {
+  deposit: 0.1,
+  startup: 0.4,
+  interim: 0.4,
+  balance: 0.1,
+}
+
+function defaultStage(ratio = 0): StagePayment {
+  return { amount: 0, ratio, scheduledDate: '', paidDate: '', paid: false }
+}
 function defaultSettlement(siteId: string): Settlement {
-  return { siteId, contractTotal: 0, deposit: defaultStage(), interim: defaultStage(), balance: defaultStage() }
+  return {
+    siteId,
+    contractTotal: 0,
+    deposit: defaultStage(DEFAULT_RATIOS.deposit),
+    startup: defaultStage(DEFAULT_RATIOS.startup),
+    interim: defaultStage(DEFAULT_RATIOS.interim),
+    balance: defaultStage(DEFAULT_RATIOS.balance),
+  }
+}
+
+function applyAutoCalc(data: Settlement): Settlement {
+  const total = data.contractTotal || 0
+  const keys: StageKey[] = ['deposit', 'startup', 'interim', 'balance']
+  const updated = { ...data }
+  keys.forEach(k => {
+    updated[k] = { ...data[k], amount: Math.round(total * DEFAULT_RATIOS[k]) }
+  })
+  return updated
 }
 
 function PaymentTab({ siteId }: { siteId: string }) {
@@ -513,7 +544,16 @@ function PaymentTab({ siteId }: { siteId: string }) {
 
   useEffect(() => {
     storage.settlements.get(siteId).then(saved => {
-      setData(saved ?? defaultSettlement(siteId))
+      if (saved) {
+        // startup 컬럼이 없는 기존 데이터 대응
+        setData({
+          ...defaultSettlement(siteId),
+          ...saved,
+          startup: saved.startup ?? defaultStage(DEFAULT_RATIOS.startup),
+        })
+      } else {
+        setData(defaultSettlement(siteId))
+      }
     })
   }, [siteId])
 
@@ -522,34 +562,46 @@ function PaymentTab({ siteId }: { siteId: string }) {
     storage.settlements.save(siteId, next).catch(console.error)
   }
 
-  function setContractTotal(val: number) {
-    persist({ ...data, contractTotal: val })
+  function handleContractTotalChange(val: number) {
+    const next = applyAutoCalc({ ...data, contractTotal: val })
+    persist(next)
+  }
+
+  function handleAutoCalc() {
+    persist(applyAutoCalc(data))
   }
 
   function updateStage(key: StageKey, field: keyof StagePayment, value: string | number | boolean) {
     persist({ ...data, [key]: { ...data[key], [field]: value } })
   }
 
-  const totalPaid = (['deposit', 'interim', 'balance'] as StageKey[])
-    .filter((k) => data[k].paid)
-    .reduce((s, k) => s + (data[k].amount || 0), 0)
+  const STAGES: StageKey[] = ['deposit', 'startup', 'interim', 'balance']
+  const totalPaid  = STAGES.filter(k => data[k].paid).reduce((s, k) => s + (data[k].amount || 0), 0)
   const outstanding = (data.contractTotal || 0) - totalPaid
 
   return (
     <div className="space-y-4">
-      {/* 계약 총액 */}
+      {/* 계약 총액 + 자동계산 버튼 */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
         <label className="text-xs text-slate-500 mb-1.5 block font-medium">계약 총액</label>
         <div className="flex items-center gap-2">
           <input
             type="number" min={0}
             value={data.contractTotal || ''}
-            onChange={(e) => setContractTotal(Number(e.target.value))}
+            onChange={(e) => handleContractTotalChange(Number(e.target.value))}
             placeholder="0"
             className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-slate-400 text-right"
           />
           <span className="text-sm text-slate-400 shrink-0">원</span>
+          <button
+            type="button"
+            onClick={handleAutoCalc}
+            className="shrink-0 text-xs px-3 py-2 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 transition whitespace-nowrap"
+          >
+            자동계산
+          </button>
         </div>
+        <p className="text-xs text-slate-400 mt-1.5">계약금 10% · 착수금 40% · 중도금 40% · 잔금 10%</p>
       </div>
 
       {/* 수금 요약 */}
@@ -568,13 +620,16 @@ function PaymentTab({ siteId }: { siteId: string }) {
         </div>
       </div>
 
-      {/* 3단계 수금 */}
-      {(['deposit', 'interim', 'balance'] as StageKey[]).map((key) => {
+      {/* 4단계 수금 */}
+      {STAGES.map((key) => {
         const s = data[key]
         return (
           <div key={key} className={`bg-white rounded-xl border shadow-sm overflow-hidden ${s.paid ? 'border-green-200' : 'border-slate-200'}`}>
             <div className={`flex items-center justify-between px-4 py-3 border-b ${s.paid ? 'bg-green-50 border-green-100' : 'bg-slate-50 border-slate-100'}`}>
-              <span className="text-sm font-semibold text-slate-700">{STAGE_LABELS[key]}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-slate-700">{STAGE_LABELS[key]}</span>
+                <span className="text-xs text-slate-400">{Math.round(DEFAULT_RATIOS[key] * 100)}%</span>
+              </div>
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <span className="text-xs text-slate-500">입금완료</span>
                 <input

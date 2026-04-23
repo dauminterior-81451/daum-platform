@@ -57,6 +57,7 @@ export interface Payment {
 
 export interface StagePayment {
   amount: number
+  ratio: number
   scheduledDate: string
   paidDate: string
   paid: boolean
@@ -66,6 +67,7 @@ export interface Settlement {
   siteId: string
   contractTotal: number
   deposit: StagePayment
+  startup: StagePayment
   interim: StagePayment
   balance: StagePayment
 }
