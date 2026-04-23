@@ -33,7 +33,7 @@ export default function DashboardPage() {
       setData({
         sites: sites.length,
         customers: uniqueCustomers,
-        activeSites: sites.filter(s => s.status === '진행중').length,
+        activeSites: sites.filter(s => s.status === 'in_progress').length,
         totalPayment,
         unpaid: Math.max(0, totalQuote - totalPayment),
         recentSites,
@@ -49,9 +49,15 @@ export default function DashboardPage() {
   ]
 
   const STATUS_STYLE: Record<string, string> = {
-    '진행중': 'bg-blue-100 text-blue-700',
-    '완료':   'bg-green-100 text-green-700',
-    '보류':   'bg-slate-100 text-slate-500',
+    pre_contract: 'bg-slate-100 text-slate-600',
+    in_progress:  'bg-blue-100 text-blue-700',
+    completed:    'bg-green-100 text-green-700',
+  }
+
+  const STATUS_LABEL: Record<string, string> = {
+    pre_contract: '계약전',
+    in_progress:  '진행중',
+    completed:    '완료',
   }
 
   return (
@@ -117,7 +123,7 @@ export default function DashboardPage() {
                   <td className="px-5 py-3 text-slate-500 truncate max-w-[180px]">{s.address || '—'}</td>
                   <td className="px-5 py-3 text-center">
                     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLE[s.status] ?? 'bg-slate-100 text-slate-500'}`}>
-                      {s.status}
+                      {STATUS_LABEL[s.status] ?? s.status}
                     </span>
                   </td>
                   <td className="px-5 py-3 text-right text-slate-400">{s.startDate || '—'}</td>

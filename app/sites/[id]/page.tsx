@@ -11,12 +11,21 @@ import {
   QuoteItem,
   Settlement,
   Site,
+  SITE_STATUS_LABELS,
+  SiteStatus,
   StagePayment,
   storage,
 } from '../../lib/storage'
 
 type Tab = '견적서' | '입금/정산' | '자재관리' | 'AS관리'
 const TABS: Tab[] = ['견적서', '입금/정산', '자재관리', 'AS관리']
+const LOCKED_ON_PRE_CONTRACT: Tab[] = ['입금/정산', '자재관리', 'AS관리']
+
+const STATUS_BADGE: Record<SiteStatus, string> = {
+  pre_contract: 'bg-slate-100 text-slate-600',
+  in_progress:  'bg-blue-100 text-blue-700',
+  completed:    'bg-green-100 text-green-700',
+}
 
 export default function SiteDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -26,6 +35,14 @@ export default function SiteDetailPage() {
   useEffect(() => {
     storage.sites.list().then(sites => setSite(sites.find(s => s.id === id) ?? null))
   }, [id])
+
+  async function handleStatusChange(next: SiteStatus) {
+    if (!site) return
+    if (!confirm(`상태를 "${SITE_STATUS_LABELS[next]}"(으)로 변경하시겠습니까?`)) return
+    const updated: Site = { ...site, status: next }
+    await storage.sites.upsert(updated)
+    setSite(updated)
+  }
 
   if (site === undefined) return <div className="p-6 text-sm text-gray-400">로딩 중...</div>
 
@@ -38,27 +55,58 @@ export default function SiteDetailPage() {
     )
   }
 
+  const isLocked = (t: Tab) =>
+    site.status === 'pre_contract' && LOCKED_ON_PRE_CONTRACT.includes(t)
+
   return (
     <div className="p-6">
       <div className="mb-5">
         <Link href="/sites" className="text-sm text-gray-400 hover:text-gray-600">← 현장목록</Link>
-        <h2 className="text-xl font-bold text-gray-800 mt-1">{site.name}</h2>
-        <p className="text-sm text-gray-500">{site.address}</p>
+        <div className="flex items-center gap-3 mt-1 flex-wrap">
+          <h2 className="text-xl font-bold text-gray-800">{site.name}</h2>
+          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${STATUS_BADGE[site.status]}`}>
+            {SITE_STATUS_LABELS[site.status]}
+          </span>
+          {site.status === 'pre_contract' && (
+            <button
+              onClick={() => handleStatusChange('in_progress')}
+              className="text-xs px-3 py-1 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition"
+            >
+              진행중으로 변경
+            </button>
+          )}
+          {site.status === 'in_progress' && (
+            <button
+              onClick={() => handleStatusChange('completed')}
+              className="text-xs px-3 py-1 rounded-lg border border-green-500 text-green-600 hover:bg-green-50 transition"
+            >
+              완료로 변경
+            </button>
+          )}
+        </div>
+        <p className="text-sm text-gray-500 mt-0.5">{site.address}</p>
       </div>
       <div className="flex gap-1 mb-5 border-b border-gray-200">
-        {TABS.map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
-              tab === t
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            {t}
-          </button>
-        ))}
+        {TABS.map((t) => {
+          const locked = isLocked(t)
+          return (
+            <button
+              key={t}
+              onClick={() => { if (!locked) setTab(t) }}
+              disabled={locked}
+              className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+                locked
+                  ? 'border-transparent text-gray-300 cursor-not-allowed'
+                  : tab === t
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {t}
+              {locked && <span className="text-[10px] leading-none">🔒</span>}
+            </button>
+          )
+        })}
       </div>
       {tab === '견적서' && <QuoteTab siteId={id} />}
       {tab === '입금/정산' && <PaymentTab siteId={id} />}

@@ -1,6 +1,12 @@
 import { supabase } from './supabase'
 
-export type SiteStatus = '진행중' | '완료' | '보류'
+export type SiteStatus = 'pre_contract' | 'in_progress' | 'completed'
+
+export const SITE_STATUS_LABELS: Record<SiteStatus, string> = {
+  pre_contract: '계약전',
+  in_progress:  '진행중',
+  completed:    '완료',
+}
 
 export interface Customer {
   id: string

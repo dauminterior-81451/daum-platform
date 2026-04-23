@@ -2,12 +2,12 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { newId, Site, SiteStatus, storage } from '../lib/storage'
+import { newId, Site, SITE_STATUS_LABELS, SiteStatus, storage } from '../lib/storage'
 
-const statusColors: Record<SiteStatus, string> = {
-  진행중: 'bg-green-100 text-green-700',
-  완료: 'bg-gray-100 text-gray-600',
-  보류: 'bg-yellow-100 text-yellow-700',
+const STATUS_BADGE: Record<SiteStatus, string> = {
+  pre_contract: 'bg-slate-100 text-slate-600',
+  in_progress:  'bg-blue-100 text-blue-700',
+  completed:    'bg-green-100 text-green-700',
 }
 
 const emptyForm = {
@@ -18,15 +18,15 @@ const emptyForm = {
   customerPhone: '',
   customerEmail: '',
   startDate: '',
-  status: '진행중' as SiteStatus,
+  status: 'pre_contract' as SiteStatus,
   memo: '',
 }
 
 export default function SitesPage() {
-  const [sites, setSites] = useState<Site[]>([])
-  const [form, setForm] = useState(emptyForm)
-  const [editId, setEditId] = useState<string | null>(null)
-  const [showForm, setShowForm] = useState(false)
+  const [sites, setSites]           = useState<Site[]>([])
+  const [form, setForm]             = useState(emptyForm)
+  const [editId, setEditId]         = useState<string | null>(null)
+  const [showForm, setShowForm]     = useState(false)
   const [filterStatus, setFilterStatus] = useState<SiteStatus | '전체'>('전체')
 
   useEffect(() => {
@@ -73,7 +73,14 @@ export default function SitesPage() {
   }
 
   const filtered =
-    filterStatus === '전체' ? sites : sites.filter((s) => s.status === filterStatus)
+    filterStatus === '전체' ? sites : sites.filter(s => s.status === filterStatus)
+
+  const FILTER_OPTIONS: ({ key: SiteStatus | '전체'; label: string })[] = [
+    { key: '전체',         label: '전체'   },
+    { key: 'pre_contract', label: '계약전' },
+    { key: 'in_progress',  label: '진행중' },
+    { key: 'completed',    label: '완료'   },
+  ]
 
   return (
     <div className="p-6">
@@ -88,17 +95,17 @@ export default function SitesPage() {
       </div>
 
       <div className="flex gap-2 mb-4">
-        {(['전체', '진행중', '완료', '보류'] as const).map((s) => (
+        {FILTER_OPTIONS.map(({ key, label }) => (
           <button
-            key={s}
-            onClick={() => setFilterStatus(s)}
+            key={key}
+            onClick={() => setFilterStatus(key)}
             className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
-              filterStatus === s
+              filterStatus === key
                 ? 'bg-blue-600 text-white border-blue-600'
                 : 'border-gray-300 text-gray-600 hover:bg-gray-50'
             }`}
           >
-            {s}
+            {label}
           </button>
         ))}
       </div>
@@ -175,8 +182,8 @@ export default function SitesPage() {
                       onChange={(e) => setForm({ ...form, status: e.target.value as SiteStatus })}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                      {(['진행중', '완료', '보류'] as SiteStatus[]).map((s) => (
-                        <option key={s} value={s}>{s}</option>
+                      {(['pre_contract', 'in_progress', 'completed'] as SiteStatus[]).map((s) => (
+                        <option key={s} value={s}>{SITE_STATUS_LABELS[s]}</option>
                       ))}
                     </select>
                   </div>
@@ -232,8 +239,8 @@ export default function SitesPage() {
                   </td>
                   <td className="px-4 py-3 text-gray-600">{s.address || '-'}</td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[s.status]}`}>
-                      {s.status}
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_BADGE[s.status] ?? 'bg-slate-100 text-slate-500'}`}>
+                      {SITE_STATUS_LABELS[s.status] ?? s.status}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right space-x-2 whitespace-nowrap">
