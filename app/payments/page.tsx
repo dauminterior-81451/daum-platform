@@ -59,13 +59,14 @@ export default function PaymentsPage() {
   }
 
   return (
-    <div className="p-6">
-      <h2 className="text-xl font-bold text-slate-800 mb-6">입금/정산</h2>
+    <div className="p-4 md:p-6">
+      <h2 className="text-xl font-bold text-slate-800 mb-5">입금/정산</h2>
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         {rows.length === 0 ? (
           <p className="text-center text-slate-400 py-12 text-sm">현장이 없습니다.</p>
         ) : (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[560px]">
             <thead className="bg-slate-50 text-slate-500 text-xs">
               <tr>
                 {['현장명', '고객명', '계약금액', '수금액', '미수금', '상태'].map(h => (
@@ -92,6 +93,7 @@ export default function PaymentsPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

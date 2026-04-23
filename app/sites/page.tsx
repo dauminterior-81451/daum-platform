@@ -83,23 +83,23 @@ export default function SitesPage() {
   ]
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 md:p-6">
+      <div className="flex items-center justify-between mb-5">
         <h2 className="text-xl font-bold text-gray-800">현장관리</h2>
         <button
           onClick={() => { setForm(emptyForm); setEditId(null); setShowForm(true) }}
-          className="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700"
+          className="bg-blue-600 text-white text-sm px-4 py-2.5 rounded-lg hover:bg-blue-700 min-h-[44px]"
         >
           + 현장 등록
         </button>
       </div>
 
-      <div className="flex gap-2 mb-4">
+      <div className="flex gap-2 mb-4 flex-wrap">
         {FILTER_OPTIONS.map(({ key, label }) => (
           <button
             key={key}
             onClick={() => setFilterStatus(key)}
-            className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+            className={`text-sm px-4 py-2 rounded-full border transition-colors min-h-[44px] ${
               filterStatus === key
                 ? 'bg-blue-600 text-white border-blue-600'
                 : 'border-gray-300 text-gray-600 hover:bg-gray-50'
@@ -110,6 +110,7 @@ export default function SitesPage() {
         ))}
       </div>
 
+      {/* 등록/수정 모달 */}
       {showForm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <form
@@ -121,7 +122,6 @@ export default function SitesPage() {
             </div>
 
             <div className="overflow-y-auto flex-1 px-6 py-4 space-y-4">
-              {/* 고객 정보 */}
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">고객 정보</p>
                 <div className="space-y-3">
@@ -136,14 +136,13 @@ export default function SitesPage() {
                         type={type}
                         value={form[key]}
                         onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* 현장 정보 */}
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">현장 정보</p>
                 <div className="space-y-3">
@@ -154,7 +153,7 @@ export default function SitesPage() {
                       required
                       value={form.name}
                       onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                   <div>
@@ -163,7 +162,7 @@ export default function SitesPage() {
                       type="text"
                       value={form.address}
                       onChange={(e) => setForm({ ...form, address: e.target.value })}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                   <div>
@@ -172,7 +171,7 @@ export default function SitesPage() {
                       type="date"
                       value={form.startDate}
                       onChange={(e) => setForm({ ...form, startDate: e.target.value })}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                   <div>
@@ -180,7 +179,7 @@ export default function SitesPage() {
                     <select
                       value={form.status}
                       onChange={(e) => setForm({ ...form, status: e.target.value as SiteStatus })}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       {(['pre_contract', 'in_progress', 'completed'] as SiteStatus[]).map((s) => (
                         <option key={s} value={s}>{SITE_STATUS_LABELS[s]}</option>
@@ -193,7 +192,7 @@ export default function SitesPage() {
                       type="text"
                       value={form.memo}
                       onChange={(e) => setForm({ ...form, memo: e.target.value })}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                 </div>
@@ -201,22 +200,47 @@ export default function SitesPage() {
             </div>
 
             <div className="px-6 py-4 border-t border-gray-100 flex gap-2">
-              <button type="submit" className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm hover:bg-blue-700">
-                저장
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowForm(false)}
-                className="flex-1 border border-gray-300 py-2 rounded-lg text-sm hover:bg-gray-50"
-              >
-                취소
-              </button>
+              <button type="submit" className="flex-1 bg-blue-600 text-white py-2.5 rounded-lg text-sm hover:bg-blue-700 min-h-[44px]">저장</button>
+              <button type="button" onClick={() => setShowForm(false)} className="flex-1 border border-gray-300 py-2.5 rounded-lg text-sm hover:bg-gray-50 min-h-[44px]">취소</button>
             </div>
           </form>
         </div>
       )}
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      {/* 모바일 카드 목록 */}
+      <div className="md:hidden space-y-3">
+        {filtered.length === 0 ? (
+          <p className="text-center text-gray-400 py-12 text-sm">등록된 현장이 없습니다.</p>
+        ) : filtered.map((s) => (
+          <div key={s.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <div className="flex-1 min-w-0">
+                <Link href={`/sites/${s.id}`} className="font-semibold text-slate-800 hover:text-blue-600 block truncate">
+                  {s.name}
+                </Link>
+                {s.customerName && (
+                  <p className="text-sm text-slate-500 mt-0.5">{s.customerName}{s.customerPhone && ` · ${s.customerPhone}`}</p>
+                )}
+              </div>
+              <span className={`text-xs px-2 py-1 rounded-full font-medium shrink-0 ${STATUS_BADGE[s.status]}`}>
+                {SITE_STATUS_LABELS[s.status]}
+              </span>
+            </div>
+            {s.address && <p className="text-xs text-slate-400 mb-2 truncate">{s.address}</p>}
+            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+              <span className="text-xs text-slate-400">{s.startDate || ''}</span>
+              <div className="flex gap-3">
+                <Link href={`/sites/${s.id}`} className="text-xs text-blue-600 font-medium min-h-[44px] flex items-center">상세</Link>
+                <button onClick={() => handleEdit(s)} className="text-xs text-slate-500 min-h-[44px] flex items-center">수정</button>
+                <button onClick={() => handleDelete(s.id)} className="text-xs text-red-500 min-h-[44px] flex items-center">삭제</button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* 데스크탑 테이블 */}
+      <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         {filtered.length === 0 ? (
           <p className="text-center text-gray-400 py-12 text-sm">등록된 현장이 없습니다.</p>
         ) : (

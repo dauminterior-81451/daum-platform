@@ -32,15 +32,15 @@ export default function EmailLogsPage() {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       {/* 헤더 */}
-      <div className="mb-6">
+      <div className="mb-5">
         <h1 className="text-xl font-bold text-slate-800">발송 이력</h1>
         <p className="text-sm text-slate-400 mt-0.5">이메일 발송 전체 기록</p>
       </div>
 
       {/* 필터 탭 */}
-      <div className="flex gap-2 mb-5">
+      <div className="flex gap-2 mb-5 flex-wrap">
         {(
           [
             { key: 'all',     label: '전체' },
@@ -51,7 +51,7 @@ export default function EmailLogsPage() {
           <button
             key={key}
             onClick={() => setFilter(key)}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors min-h-[44px] ${
               filter === key
                 ? 'bg-slate-900 text-white'
                 : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
@@ -72,7 +72,8 @@ export default function EmailLogsPage() {
         ) : filtered.length === 0 ? (
           <div className="py-20 text-center text-slate-400 text-sm">발송 이력이 없습니다.</div>
         ) : (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[600px]">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500">현장명</th>
@@ -125,6 +126,7 @@ export default function EmailLogsPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

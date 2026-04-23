@@ -68,12 +68,12 @@ export default function AsPage() {
   const sorted   = [...filtered].sort((a, b) => b.date.localeCompare(a.date))
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-4 md:p-6">
+      <div className="flex items-center justify-between mb-5">
         <h2 className="text-xl font-bold text-slate-800">AS관리</h2>
         <button
           onClick={() => { setForm(emptyForm); setShowForm(true) }}
-          className="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700"
+          className="bg-blue-600 text-white text-sm px-4 py-2.5 rounded-lg hover:bg-blue-700 min-h-[44px]"
         >
           + AS 접수
         </button>
@@ -178,46 +178,72 @@ export default function AsPage() {
         </div>
       )}
 
-      {/* 목록 테이블 */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      {/* 모바일 카드 목록 */}
+      <div className="md:hidden space-y-3">
+        {sorted.length === 0 ? (
+          <p className="text-center text-slate-400 py-12 text-sm">AS 내역이 없습니다.</p>
+        ) : sorted.map(item => (
+          <div key={item.id} className="bg-white rounded-xl border border-slate-200 p-4">
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-slate-800 text-sm truncate">{siteName(item.siteId)}</p>
+                <p className="text-slate-700 text-sm mt-1">{item.description}</p>
+              </div>
+              <button
+                onClick={() => handleStatusCycle(item)}
+                className={`text-xs font-semibold px-2.5 py-1.5 rounded-full shrink-0 min-h-[44px] flex items-center ${STATUS_STYLE[item.status]}`}
+              >
+                {item.status}
+              </button>
+            </div>
+            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+              <div className="text-xs text-slate-400 space-x-2">
+                <span>{item.date}</span>
+                {item.note && <span>· {item.note}</span>}
+              </div>
+              <button onClick={() => handleDelete(item.id)} className="text-xs text-red-500 min-h-[44px] flex items-center">삭제</button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* 데스크탑 테이블 */}
+      <div className="hidden md:block bg-white rounded-xl border border-slate-200 overflow-hidden">
         {sorted.length === 0 ? (
           <p className="text-center text-slate-400 py-12 text-sm">AS 내역이 없습니다.</p>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-slate-500 text-xs">
-              <tr>
-                {['현장명', '접수일', '내용', '상태', '메모', ''].map(h => (
-                  <th key={h} className="px-4 py-3 text-left font-medium whitespace-nowrap">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {sorted.map(item => (
-                <tr key={item.id} className="hover:bg-slate-50">
-                  <td className="px-4 py-3 font-medium text-slate-800 whitespace-nowrap">{siteName(item.siteId)}</td>
-                  <td className="px-4 py-3 text-slate-500 whitespace-nowrap">{item.date}</td>
-                  <td className="px-4 py-3 text-slate-700 max-w-[240px] truncate">{item.description}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <button
-                      onClick={() => handleStatusCycle(item)}
-                      className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLE[item.status]}`}
-                    >
-                      {item.status}
-                    </button>
-                  </td>
-                  <td className="px-4 py-3 text-slate-400 max-w-[160px] truncate">{item.note || '—'}</td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => handleDelete(item.id)}
-                      className="text-xs text-red-500 hover:underline"
-                    >
-                      삭제
-                    </button>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[600px]">
+              <thead className="bg-slate-50 text-slate-500 text-xs">
+                <tr>
+                  {['현장명', '접수일', '내용', '상태', '메모', ''].map(h => (
+                    <th key={h} className="px-4 py-3 text-left font-medium whitespace-nowrap">{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {sorted.map(item => (
+                  <tr key={item.id} className="hover:bg-slate-50">
+                    <td className="px-4 py-3 font-medium text-slate-800 whitespace-nowrap">{siteName(item.siteId)}</td>
+                    <td className="px-4 py-3 text-slate-500 whitespace-nowrap">{item.date}</td>
+                    <td className="px-4 py-3 text-slate-700 max-w-[240px] truncate">{item.description}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <button
+                        onClick={() => handleStatusCycle(item)}
+                        className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLE[item.status]}`}
+                      >
+                        {item.status}
+                      </button>
+                    </td>
+                    <td className="px-4 py-3 text-slate-400 max-w-[160px] truncate">{item.note || '—'}</td>
+                    <td className="px-4 py-3 text-right">
+                      <button onClick={() => handleDelete(item.id)} className="text-xs text-red-500 hover:underline">삭제</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

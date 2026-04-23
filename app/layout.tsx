@@ -12,7 +12,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ko" className="h-full">
       <body className="h-full flex bg-gray-50 text-gray-900">
         <ConditionalSidebar />
-        <main className="flex-1 overflow-auto">{children}</main>
+        <main className="flex-1 overflow-auto pt-14 md:pt-0">{children}</main>
       </body>
     </html>
   )

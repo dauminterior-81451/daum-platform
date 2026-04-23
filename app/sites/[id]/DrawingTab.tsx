@@ -84,7 +84,8 @@ export default function DrawingTab({ siteId }: { siteId: string }) {
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[480px]">
             <thead className="bg-slate-50 text-slate-400 text-xs">
               <tr>
                 {['파일명', '유형', '크기', '업로드일', ''].map(h => (
@@ -129,6 +130,7 @@ export default function DrawingTab({ siteId }: { siteId: string }) {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

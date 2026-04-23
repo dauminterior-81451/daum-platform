@@ -30,7 +30,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-slate-50 flex items-center justify-center p-4">
+    <div className="min-h-[calc(100vh-3.5rem)] md:min-h-screen w-full bg-slate-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 w-full max-w-sm p-8">
         <div className="mb-8 text-center">
           <p className="text-xs text-slate-400 font-medium tracking-wider uppercase mb-1">업무관리 플랫폼</p>

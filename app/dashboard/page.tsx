@@ -61,34 +61,34 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="p-6 max-w-5xl">
-      <h2 className="text-xl font-bold text-slate-800 mb-6">대시보드</h2>
+    <div className="p-4 md:p-6 max-w-5xl">
+      <h2 className="text-xl font-bold text-slate-800 mb-5">대시보드</h2>
 
-      {/* 통계 카드 */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 mb-4">
+      {/* 통계 카드 — 모바일 2열, 데스크탑 4열 */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4">
         {cards.map((c) => (
           <Link
             key={c.label}
             href={c.href}
-            className="bg-white rounded-xl border border-slate-200 px-6 py-5 hover:shadow-sm transition-shadow"
+            className="bg-white rounded-xl border border-slate-200 px-4 py-4 md:px-6 md:py-5 hover:shadow-sm transition-shadow"
           >
-            <p className="text-xs text-slate-400 mb-2">{c.label}</p>
-            <p className="text-3xl font-bold text-slate-800 mb-1">{c.value}</p>
+            <p className="text-xs text-slate-400 mb-1.5">{c.label}</p>
+            <p className="text-2xl md:text-3xl font-bold text-slate-800 mb-1">{c.value}</p>
             <p className="text-xs text-slate-400">{c.desc}</p>
           </Link>
         ))}
       </div>
 
       {/* 미수금 현황 카드 */}
-      <div className="bg-red-50 border border-red-200 rounded-xl px-6 py-5 mb-6 flex items-center justify-between">
+      <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-4 md:px-6 md:py-5 mb-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <p className="text-xs text-red-400 mb-1">미수금 현황</p>
-          <p className="text-3xl font-bold text-red-600">{data.unpaid.toLocaleString()}원</p>
+          <p className="text-2xl md:text-3xl font-bold text-red-600">{data.unpaid.toLocaleString()}원</p>
           <p className="text-xs text-red-400 mt-1">총 견적 금액 — 입금액</p>
         </div>
         <Link
           href="/payments"
-          className="bg-red-600 text-white text-xs font-semibold px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+          className="bg-red-600 text-white text-xs font-semibold px-4 py-2.5 rounded-lg hover:bg-red-700 transition-colors min-h-[44px] flex items-center"
         >
           입금 관리 →
         </Link>
@@ -96,41 +96,43 @@ export default function DashboardPage() {
 
       {/* 최근 현장 목록 */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+        <div className="px-4 md:px-5 py-4 border-b border-slate-100 flex items-center justify-between">
           <h3 className="font-semibold text-slate-800 text-sm">최근 현장</h3>
           <Link href="/sites" className="text-xs text-slate-400 hover:text-slate-700">전체보기 →</Link>
         </div>
         {data.recentSites.length === 0 ? (
           <p className="text-sm text-slate-400 text-center py-10">등록된 현장이 없습니다.</p>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-slate-50 text-left text-xs text-slate-500">
-                <th className="px-5 py-3 font-medium">현장명</th>
-                <th className="px-5 py-3 font-medium">주소</th>
-                <th className="px-5 py-3 font-medium text-center">상태</th>
-                <th className="px-5 py-3 font-medium text-right">시작일</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.recentSites.map((s) => (
-                <tr key={s.id} className="border-t border-slate-100 hover:bg-slate-50 transition-colors">
-                  <td className="px-5 py-3">
-                    <Link href={`/sites/${s.id}`} className="font-medium text-slate-800 hover:text-slate-600">
-                      {s.name}
-                    </Link>
-                  </td>
-                  <td className="px-5 py-3 text-slate-500 truncate max-w-[180px]">{s.address || '—'}</td>
-                  <td className="px-5 py-3 text-center">
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLE[s.status] ?? 'bg-slate-100 text-slate-500'}`}>
-                      {STATUS_LABEL[s.status] ?? s.status}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3 text-right text-slate-400">{s.startDate || '—'}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[480px]">
+              <thead>
+                <tr className="bg-slate-50 text-left text-xs text-slate-500">
+                  <th className="px-4 md:px-5 py-3 font-medium">현장명</th>
+                  <th className="px-4 md:px-5 py-3 font-medium">주소</th>
+                  <th className="px-4 md:px-5 py-3 font-medium text-center">상태</th>
+                  <th className="px-4 md:px-5 py-3 font-medium text-right">시작일</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {data.recentSites.map((s) => (
+                  <tr key={s.id} className="border-t border-slate-100 hover:bg-slate-50 transition-colors">
+                    <td className="px-4 md:px-5 py-3">
+                      <Link href={`/sites/${s.id}`} className="font-medium text-slate-800 hover:text-slate-600">
+                        {s.name}
+                      </Link>
+                    </td>
+                    <td className="px-4 md:px-5 py-3 text-slate-500 truncate max-w-[120px] md:max-w-[180px]">{s.address || '—'}</td>
+                    <td className="px-4 md:px-5 py-3 text-center">
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLE[s.status] ?? 'bg-slate-100 text-slate-500'}`}>
+                        {STATUS_LABEL[s.status] ?? s.status}
+                      </span>
+                    </td>
+                    <td className="px-4 md:px-5 py-3 text-right text-slate-400 whitespace-nowrap">{s.startDate || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

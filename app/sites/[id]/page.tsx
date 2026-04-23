@@ -114,7 +114,7 @@ export default function SiteDetailPage() {
   const inputCls = 'w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-slate-400'
 
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6">
       {/* 헤더 */}
       <div className="mb-4">
         <Link href="/sites" className="text-sm text-gray-400 hover:text-gray-600">← 현장목록</Link>
@@ -158,7 +158,7 @@ export default function SiteDetailPage() {
 
         {editing && editForm ? (
           <div className="px-4 py-4 space-y-3">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-xs text-slate-400 mb-1 block">현장명</label>
                 <input value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} className={inputCls} />
@@ -205,7 +205,7 @@ export default function SiteDetailPage() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-x-8 gap-y-2 px-4 py-4 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 px-4 py-4 text-sm">
             {[
               { label: '현장명', value: site.name },
               { label: '고객명', value: site.customerName  || '—' },
@@ -230,7 +230,7 @@ export default function SiteDetailPage() {
       </div>
 
       {/* 탭 */}
-      <div className="flex gap-1 mb-5 border-b border-gray-200">
+      <div className="flex gap-1 mb-5 border-b border-gray-200 overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 no-scrollbar">
         {TABS.map((t) => {
           const locked = isLocked(t)
           return (
@@ -238,7 +238,7 @@ export default function SiteDetailPage() {
               key={t}
               onClick={() => { if (!locked) setTab(t) }}
               disabled={locked}
-              className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+              className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap min-h-[44px] ${
                 locked
                   ? 'border-transparent text-gray-300 cursor-not-allowed'
                   : tab === t
@@ -502,7 +502,7 @@ function QuoteTab({ siteId }: { siteId: string }) {
                           className="text-red-400 hover:text-red-600 text-sm shrink-0">✕</button>
                       </div>
                       {/* 컬럼 헤더 */}
-                      <div className="grid grid-cols-12 gap-1 px-3 pt-2 pb-0.5 text-xs text-slate-400">
+                      <div className="grid grid-cols-12 gap-1 px-3 pt-2 pb-0.5 text-xs text-slate-400 min-w-[420px]">
                         <span className="col-span-3">항목명</span>
                         <span className="col-span-4">내용</span>
                         <span className="col-span-2 text-right">단가</span>
@@ -511,9 +511,9 @@ function QuoteTab({ siteId }: { siteId: string }) {
                         <span className="col-span-1" />
                       </div>
                       {/* 항목 */}
-                      <div className="px-3 pb-2 space-y-0.5">
+                      <div className="px-3 pb-2 space-y-0.5 overflow-x-auto">
                         {g.items.map((item) => (
-                          <div key={item.id} className="grid grid-cols-12 gap-1 items-start py-1 border-b border-slate-50 last:border-0">
+                          <div key={item.id} className="grid grid-cols-12 gap-1 items-start py-1 border-b border-slate-50 last:border-0 min-w-[420px]">
                             <input value={item.name} onChange={(e) => updateItem(g.id, item.id, 'name', e.target.value)}
                               placeholder="항목명"
                               autoComplete="off"
@@ -592,7 +592,7 @@ function QuoteTab({ siteId }: { siteId: string }) {
 
             {/* 합계 요약 — 하단 고정 */}
             <div className="border-t border-slate-200 shrink-0">
-              <div className="flex divide-x divide-slate-200 text-sm">
+              <div className="flex flex-col sm:flex-row divide-y sm:divide-y-0 sm:divide-x divide-slate-200 text-sm">
                 <div className="flex-1 flex justify-between px-4 py-2.5 bg-slate-50 text-slate-600">
                   <span>공급가액</span>
                   <span className="font-medium">{supply.toLocaleString()}원</span>

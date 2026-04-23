@@ -25,13 +25,14 @@ export default function MaterialsPage() {
   }, [])
 
   return (
-    <div className="p-6">
-      <h2 className="text-xl font-bold text-slate-800 mb-6">자재관리</h2>
+    <div className="p-4 md:p-6">
+      <h2 className="text-xl font-bold text-slate-800 mb-5">자재관리</h2>
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         {rows.length === 0 ? (
           <p className="text-center text-slate-400 py-12 text-sm">자재 내역이 없습니다.</p>
         ) : (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[640px]">
             <thead className="bg-slate-50 text-slate-500 text-xs">
               <tr>
                 {['현장명', '자재명', '규격', '수량', '단가', '공급업체', '구매일'].map(h => (
@@ -55,6 +56,7 @@ export default function MaterialsPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>
