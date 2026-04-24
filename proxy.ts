@@ -31,6 +31,11 @@ export async function proxy(request: NextRequest) {
     return response
   }
 
+  // 견적서 고객 미리보기는 로그인 없이 접근 허용
+  if (/^\/sites\/[^/]+\/quotes\/[^/]+\/preview/.test(pathname)) {
+    return response
+  }
+
   if (!session) {
     return NextResponse.redirect(new URL('/login', request.url))
   }

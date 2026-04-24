@@ -491,6 +491,8 @@ function QuoteTab({ siteId }: { siteId: string }) {
                         <input value={g.name} onChange={(e) => updateGroupName(g.id, e.target.value)}
                           placeholder={`품목 ${gIdx + 1}`}
                           autoComplete="off"
+                          lang="ko"
+                          inputMode="text"
                           onCompositionStart={() => { isComposing.current = true }}
                           onCompositionEnd={() => { isComposing.current = false }}
                           onKeyDown={onEnter}
@@ -517,6 +519,8 @@ function QuoteTab({ siteId }: { siteId: string }) {
                             <input value={item.name} onChange={(e) => updateItem(g.id, item.id, 'name', e.target.value)}
                               placeholder="항목명"
                               autoComplete="off"
+                              lang="ko"
+                              inputMode="text"
                               onCompositionStart={() => { isComposing.current = true }}
                               onCompositionEnd={() => { isComposing.current = false }}
                               onKeyDown={onEnter}
