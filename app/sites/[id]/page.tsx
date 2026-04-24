@@ -1189,6 +1189,9 @@ function MaterialTab({ siteId }: { siteId: string }) {
               <label className="text-xs text-slate-500 mb-1 block">규격 <span className="text-slate-400 font-normal">(관리용)</span></label>
               <input
                 type="text"
+                lang="ko"
+                inputMode="text"
+                autoComplete="off"
                 value={form.spec}
                 onChange={e => setForm({ ...form, spec: e.target.value })}
                 className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-slate-400"
@@ -1271,6 +1274,9 @@ function MaterialTab({ siteId }: { siteId: string }) {
               <label className="text-xs text-slate-500 mb-1 block">공급업체</label>
               <input
                 type="text"
+                lang="ko"
+                inputMode="text"
+                autoComplete="off"
                 value={form.supplier}
                 onChange={e => setForm({ ...form, supplier: e.target.value })}
                 className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-slate-400"

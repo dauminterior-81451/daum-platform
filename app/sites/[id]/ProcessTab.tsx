@@ -110,19 +110,29 @@ export default function ProcessTab({ siteId }: { siteId: string }) {
       photos:      form.photos,
       done:        editId ? form.done : false,
     }
-    await storage.processItems.upsert(item)
-    setList(prev => editId
-      ? prev.map(p => p.id === editId ? item : p)
-      : [...prev, item]
-    )
-    setShowForm(false)
+    try {
+      await storage.processItems.upsert(item)
+      setList(prev => editId
+        ? prev.map(p => p.id === editId ? item : p)
+        : [...prev, item]
+      )
+      setShowForm(false)
+    } catch (err) {
+      console.error('공정 저장 실패:', err)
+      alert('저장에 실패했습니다. DB 컬럼(description, photos, endDate)이 추가됐는지 확인해 주세요.')
+    }
   }
 
   async function handleDelete() {
     if (!editId || !confirm('삭제하시겠습니까?')) return
-    await storage.processItems.remove(editId)
-    setList(prev => prev.filter(p => p.id !== editId))
-    setShowForm(false)
+    try {
+      await storage.processItems.remove(editId)
+      setList(prev => prev.filter(p => p.id !== editId))
+      setShowForm(false)
+    } catch (err) {
+      console.error('공정 삭제 실패:', err)
+      alert('삭제에 실패했습니다.')
+    }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -209,11 +219,8 @@ export default function ProcessTab({ siteId }: { siteId: string }) {
           buttonText={{ today: '오늘', month: '월간', list: '목록' }}
           events={events}
           editable
-          selectable
-          selectMirror
           dayMaxEvents={3}
           height="auto"
-          select={(info) => openNew(info.startStr, fromFCEnd(info.endStr))}
           eventClick={(info) => {
             const item = list.find(p => p.id === info.event.id)
             if (item) openEdit(item)

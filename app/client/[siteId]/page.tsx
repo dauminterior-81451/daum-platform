@@ -480,19 +480,26 @@ export default function ClientPage() {
           className="bg-white rounded-2xl border border-slate-200 p-4 sticky bottom-[calc(56px+env(safe-area-inset-bottom)+1rem)] md:static shadow-sm"
         >
           <label className="text-xs text-slate-500 mb-1.5 block">궁금하신 사항을 남겨주세요</label>
-          <div className="flex gap-2">
-            <input
+          <div className="flex gap-2 items-end">
+            <textarea
               value={question}
-              onChange={e => setQuestion(e.target.value)}
+              onChange={e => {
+                setQuestion(e.target.value)
+                e.target.style.height = 'auto'
+                e.target.style.height = e.target.scrollHeight + 'px'
+              }}
               placeholder="문의 내용 입력"
               lang="ko"
               inputMode="text"
               autoComplete="off"
-              className="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-slate-400"
+              rows={1}
+              className="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-slate-400 resize-none overflow-hidden"
+              style={{ minHeight: '38px', maxHeight: '120px' }}
             />
             <button
               type="submit"
               className="shrink-0 text-sm px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700"
+              style={{ height: '38px' }}
             >
               전송
             </button>

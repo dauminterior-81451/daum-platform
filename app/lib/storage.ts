@@ -277,7 +277,10 @@ export const storage = {
       if (error) console.error('[storage:process_items]', error)
       return (data ?? []) as ProcessItem[]
     },
-    upsert: (item: ProcessItem) => upsertRow('process_items', item),
+    upsert: async (item: ProcessItem): Promise<void> => {
+      const { error } = await supabase.from('process_items').upsert(item as never)
+      if (error) { console.error('[storage:process_items:upsert]', error); throw error }
+    },
     remove: (id: string) => deleteRow('process_items', id),
   },
   extraPayments: {
