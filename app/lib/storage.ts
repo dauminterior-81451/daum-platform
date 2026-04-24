@@ -123,6 +123,40 @@ export interface DrawingFile {
   createdAt: string
 }
 
+export interface ProcessItem {
+  id: string
+  siteId: string
+  date: string
+  content: string
+  done: boolean
+}
+
+export interface ExtraPayment {
+  id: string
+  siteId: string
+  title: string
+  amount: number
+  scheduledDate: string
+  paid: boolean
+  memo: string
+}
+
+export interface ClientNotice {
+  id: string
+  siteId: string
+  content: string
+  createdAt: string
+}
+
+export interface ClientInquiry {
+  id: string
+  siteId: string
+  question: string
+  answer: string
+  createdAt: string
+  answeredAt: string
+}
+
 export interface EmailLog {
   id: string
   siteId: string | null
@@ -229,6 +263,58 @@ export const storage = {
       if (error) console.error('[storage:drawing_files:insert]', error)
     },
     remove: (id: string) => deleteRow('drawing_files', id),
+  },
+  processItems: {
+    listBySite: async (siteId: string): Promise<ProcessItem[]> => {
+      const { data, error } = await supabase
+        .from('process_items')
+        .select('*')
+        .eq('siteId', siteId)
+        .order('date', { ascending: true })
+      if (error) console.error('[storage:process_items]', error)
+      return (data ?? []) as ProcessItem[]
+    },
+    upsert: (item: ProcessItem) => upsertRow('process_items', item),
+    remove: (id: string) => deleteRow('process_items', id),
+  },
+  extraPayments: {
+    listBySite: async (siteId: string): Promise<ExtraPayment[]> => {
+      const { data, error } = await supabase
+        .from('extra_payments')
+        .select('*')
+        .eq('siteId', siteId)
+        .order('id', { ascending: true })
+      if (error) console.error('[storage:extra_payments]', error)
+      return (data ?? []) as ExtraPayment[]
+    },
+    upsert: (item: ExtraPayment) => upsertRow('extra_payments', item),
+    remove: (id: string) => deleteRow('extra_payments', id),
+  },
+  clientNotices: {
+    listBySite: async (siteId: string): Promise<ClientNotice[]> => {
+      const { data, error } = await supabase
+        .from('client_notices')
+        .select('*')
+        .eq('siteId', siteId)
+        .order('createdAt', { ascending: false })
+      if (error) console.error('[storage:client_notices]', error)
+      return (data ?? []) as ClientNotice[]
+    },
+    upsert: (item: ClientNotice) => upsertRow('client_notices', item),
+    remove: (id: string) => deleteRow('client_notices', id),
+  },
+  clientInquiries: {
+    listBySite: async (siteId: string): Promise<ClientInquiry[]> => {
+      const { data, error } = await supabase
+        .from('client_inquiries')
+        .select('*')
+        .eq('siteId', siteId)
+        .order('createdAt', { ascending: false })
+      if (error) console.error('[storage:client_inquiries]', error)
+      return (data ?? []) as ClientInquiry[]
+    },
+    upsert: (item: ClientInquiry) => upsertRow('client_inquiries', item),
+    remove: (id: string) => deleteRow('client_inquiries', id),
   },
   emailLogs: {
     list: async (): Promise<EmailLog[]> => {

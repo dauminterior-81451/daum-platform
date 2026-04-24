@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import {
   AsItem,
+  ExtraPayment,
   Material,
   MaterialFile,
   newId,
@@ -18,10 +19,12 @@ import {
   storage,
 } from '../../lib/storage'
 import { fileStorage } from '../../lib/supabase'
+import ClientPageTab from './ClientPageTab'
 import DrawingTab from './DrawingTab'
+import ProcessTab from './ProcessTab'
 
-type Tab = '견적서' | '입금/정산' | '자재관리' | '도면' | 'AS관리'
-const TABS: Tab[] = ['견적서', '입금/정산', '자재관리', '도면', 'AS관리']
+type Tab = '견적서' | '입금/정산' | '자재관리' | '도면' | 'AS관리' | '공정관리' | '고객페이지'
+const TABS: Tab[] = ['견적서', '입금/정산', '자재관리', '도면', 'AS관리', '공정관리', '고객페이지']
 const LOCKED_ON_PRE_CONTRACT: Tab[] = ['입금/정산', '자재관리', '도면', 'AS관리']
 
 const STATUS_BADGE: Record<SiteStatus, string> = {
@@ -108,8 +111,10 @@ export default function SiteDetailPage() {
     )
   }
 
-  const isLocked = (t: Tab) =>
-    site.status === 'pre_contract' && LOCKED_ON_PRE_CONTRACT.includes(t)
+  const isLocked = (t: Tab) => {
+    if (t === '공정관리') return site.status !== 'in_progress'
+    return site.status === 'pre_contract' && LOCKED_ON_PRE_CONTRACT.includes(t)
+  }
 
   const inputCls = 'w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-slate-400'
 
@@ -258,6 +263,8 @@ export default function SiteDetailPage() {
       {tab === '자재관리' && <MaterialTab siteId={id} />}
       {tab === '도면' && <DrawingTab siteId={id} />}
       {tab === 'AS관리' && <AsTab siteId={id} />}
+      {tab === '공정관리' && <ProcessTab siteId={id} />}
+      {tab === '고객페이지' && <ClientPageTab siteId={id} />}
 
       {/* 토스트 */}
       {toast && (
@@ -746,6 +753,12 @@ function applyAutoCalc(data: Settlement): Settlement {
 
 function PaymentTab({ siteId }: { siteId: string }) {
   const [data, setData] = useState<Settlement>(() => defaultSettlement(siteId))
+  const [extras, setExtras] = useState<ExtraPayment[]>([])
+  const [showExtraForm, setShowExtraForm] = useState(false)
+  const [editExtraId, setEditExtraId] = useState<string | null>(null)
+  const [extraForm, setExtraForm] = useState<Omit<ExtraPayment, 'id' | 'siteId'>>({
+    title: '', amount: 0, scheduledDate: '', paid: false, memo: '',
+  })
 
   useEffect(() => {
     storage.settlements.get(siteId).then(saved => {
@@ -760,6 +773,7 @@ function PaymentTab({ siteId }: { siteId: string }) {
         setData(defaultSettlement(siteId))
       }
     })
+    storage.extraPayments.listBySite(siteId).then(setExtras)
   }, [siteId])
 
   function persist(next: Settlement) {
@@ -778,6 +792,39 @@ function PaymentTab({ siteId }: { siteId: string }) {
 
   function updateStage(key: StageKey, field: keyof StagePayment, value: string | number | boolean) {
     persist({ ...data, [key]: { ...data[key], [field]: value } })
+  }
+
+  function openNewExtra() {
+    setEditExtraId(null)
+    setExtraForm({ title: '', amount: 0, scheduledDate: '', paid: false, memo: '' })
+    setShowExtraForm(true)
+  }
+
+  function openEditExtra(ex: ExtraPayment) {
+    setEditExtraId(ex.id)
+    setExtraForm({ title: ex.title, amount: ex.amount, scheduledDate: ex.scheduledDate, paid: ex.paid, memo: ex.memo })
+    setShowExtraForm(true)
+  }
+
+  async function handleSaveExtra(e: React.FormEvent) {
+    e.preventDefault()
+    if (!extraForm.title.trim()) return
+    if (editExtraId) {
+      const updated: ExtraPayment = { ...extras.find(ex => ex.id === editExtraId)!, ...extraForm }
+      await storage.extraPayments.upsert(updated)
+      setExtras(prev => prev.map(ex => ex.id === editExtraId ? updated : ex))
+    } else {
+      const item: ExtraPayment = { id: newId(), siteId, ...extraForm }
+      await storage.extraPayments.upsert(item)
+      setExtras(prev => [...prev, item])
+    }
+    setShowExtraForm(false)
+  }
+
+  async function deleteExtra(id: string) {
+    if (!confirm('삭제하시겠습니까?')) return
+    await storage.extraPayments.remove(id)
+    setExtras(prev => prev.filter(ex => ex.id !== id))
   }
 
   function handleRatioChange(key: StageKey, raw: string) {
@@ -893,6 +940,117 @@ function PaymentTab({ siteId }: { siteId: string }) {
           </div>
         )
       })}
+
+      {/* 추가금 */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b bg-orange-50 border-orange-100">
+          <span className="text-sm font-semibold text-slate-700">추가금</span>
+          <button
+            type="button"
+            onClick={openNewExtra}
+            className="text-xs px-3 py-1.5 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition"
+          >
+            + 추가
+          </button>
+        </div>
+
+        {showExtraForm && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+            <form onSubmit={handleSaveExtra} className="bg-white rounded-xl shadow-lg p-6 w-full max-w-sm space-y-3">
+              <h3 className="font-semibold text-gray-800">추가금 {editExtraId ? '수정' : '추가'}</h3>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">제목 *</label>
+                <input
+                  type="text"
+                  value={extraForm.title}
+                  onChange={e => setExtraForm({ ...extraForm, title: e.target.value })}
+                  required
+                  lang="ko"
+                  inputMode="text"
+                  autoComplete="off"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-slate-400"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">금액</label>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    min={0}
+                    value={extraForm.amount || ''}
+                    onChange={e => setExtraForm({ ...extraForm, amount: Number(e.target.value) })}
+                    placeholder="0"
+                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-slate-400 text-right"
+                  />
+                  <span className="text-sm text-slate-400 shrink-0">원</span>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">예정일</label>
+                <input
+                  type="date"
+                  value={extraForm.scheduledDate}
+                  onChange={e => setExtraForm({ ...extraForm, scheduledDate: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-slate-400"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">사유 메모</label>
+                <input
+                  type="text"
+                  value={extraForm.memo}
+                  onChange={e => setExtraForm({ ...extraForm, memo: e.target.value })}
+                  lang="ko"
+                  inputMode="text"
+                  autoComplete="off"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-slate-400"
+                />
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={extraForm.paid}
+                  onChange={e => setExtraForm({ ...extraForm, paid: e.target.checked })}
+                  className="w-4 h-4 accent-green-600"
+                />
+                <span className="text-sm text-slate-600">납부완료</span>
+              </label>
+              <div className="flex gap-2 pt-1">
+                <button type="submit" className="flex-1 bg-slate-900 text-white py-2 rounded-lg text-sm hover:bg-slate-800">저장</button>
+                <button type="button" onClick={() => setShowExtraForm(false)} className="flex-1 border border-slate-200 py-2 rounded-lg text-sm hover:bg-slate-50">취소</button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {extras.length === 0 ? (
+          <p className="text-xs text-slate-400 text-center py-6">등록된 추가금이 없습니다.</p>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {extras.map(ex => (
+              <div key={ex.id} className="px-4 py-3 flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-medium text-slate-700">{ex.title}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ex.paid ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                      {ex.paid ? '납부완료' : '미납'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                    <span className="text-xs text-slate-500 font-medium">{(ex.amount || 0).toLocaleString()}원</span>
+                    {ex.scheduledDate && <span className="text-xs text-slate-400">예정일: {ex.scheduledDate}</span>}
+                    {ex.memo && <span className="text-xs text-slate-400">{ex.memo}</span>}
+                  </div>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <button onClick={() => openEditExtra(ex)} className="text-xs text-blue-600 hover:underline">수정</button>
+                  <button onClick={() => deleteExtra(ex.id)} className="text-xs text-red-500 hover:underline">삭제</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
