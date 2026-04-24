@@ -118,8 +118,9 @@ export default function ProcessTab({ siteId }: { siteId: string }) {
       )
       setShowForm(false)
     } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
       console.error('공정 저장 실패:', err)
-      alert('저장에 실패했습니다. DB 컬럼(description, photos, endDate)이 추가됐는지 확인해 주세요.')
+      alert(`저장 실패: ${msg}`)
     }
   }
 

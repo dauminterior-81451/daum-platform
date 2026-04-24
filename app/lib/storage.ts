@@ -278,8 +278,27 @@ export const storage = {
       return (data ?? []) as ProcessItem[]
     },
     upsert: async (item: ProcessItem): Promise<void> => {
-      const { error } = await supabase.from('process_items').upsert(item as never)
-      if (error) { console.error('[storage:process_items:upsert]', error); throw error }
+      const payload = {
+        id:          item.id,
+        siteId:      item.siteId,
+        content:     item.content,
+        date:        item.date,
+        endDate:     item.endDate ?? null,
+        description: item.description ?? '',
+        photos:      item.photos ?? [],
+        done:        item.done,
+      }
+      console.log('[process_items:upsert] payload:', payload)
+      const { error } = await supabase.from('process_items').upsert(payload as never)
+      if (error) {
+        console.error('[process_items:upsert] FAILED', {
+          message: error.message,
+          details: error.details,
+          hint:    error.hint,
+          code:    error.code,
+        })
+        throw new Error(error.message)
+      }
     },
     remove: (id: string) => deleteRow('process_items', id),
   },
