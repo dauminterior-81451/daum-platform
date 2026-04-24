@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ClientInquiry, ClientNotice, newId, storage } from '../../lib/storage'
+import { ClientInquiry, ClientNotice, storage } from '../../lib/storage'
 
 export default function ClientPageTab({ siteId }: { siteId: string }) {
   const [notices, setNotices] = useState<ClientNotice[]>([])
@@ -29,15 +29,18 @@ export default function ClientPageTab({ siteId }: { siteId: string }) {
 
   async function addNotice() {
     if (!noticeInput.trim()) return
-    const item: ClientNotice = {
-      id: newId(),
-      siteId,
-      content: noticeInput.trim(),
-      createdAt: new Date().toISOString(),
+    try {
+      const item = await storage.clientNotices.insert({
+        siteId,
+        content: noticeInput.trim(),
+        createdAt: new Date().toISOString(),
+      })
+      setNotices(prev => [item, ...prev])
+      setNoticeInput('')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      alert(`공지 저장 실패: ${msg}`)
     }
-    await storage.clientNotices.upsert(item)
-    setNotices(prev => [item, ...prev])
-    setNoticeInput('')
   }
 
   async function saveEditNotice() {

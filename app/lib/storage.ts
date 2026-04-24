@@ -347,6 +347,18 @@ export const storage = {
       if (error) console.error('[storage:client_notices]', error)
       return (data ?? []) as ClientNotice[]
     },
+    insert: async (item: Omit<ClientNotice, 'id'>): Promise<ClientNotice> => {
+      const { data, error } = await supabase
+        .from('client_notices')
+        .insert(item)
+        .select()
+        .single()
+      if (error) {
+        console.error('[client_notices:insert] FAILED', { message: error.message, code: error.code })
+        throw new Error(error.message)
+      }
+      return data as ClientNotice
+    },
     upsert: (item: ClientNotice) => upsertRow('client_notices', item),
     remove: (id: string) => deleteRow('client_notices', id),
   },
@@ -359,6 +371,18 @@ export const storage = {
         .order('createdAt', { ascending: false })
       if (error) console.error('[storage:client_inquiries]', error)
       return (data ?? []) as ClientInquiry[]
+    },
+    insert: async (item: Omit<ClientInquiry, 'id'>): Promise<ClientInquiry> => {
+      const { data, error } = await supabase
+        .from('client_inquiries')
+        .insert(item)
+        .select()
+        .single()
+      if (error) {
+        console.error('[client_inquiries:insert] FAILED', { message: error.message, code: error.code })
+        throw new Error(error.message)
+      }
+      return data as ClientInquiry
     },
     upsert: (item: ClientInquiry) => upsertRow('client_inquiries', item),
     remove: (id: string) => deleteRow('client_inquiries', id),

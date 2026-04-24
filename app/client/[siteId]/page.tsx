@@ -16,7 +16,6 @@ import {
   ProcessItem,
   Settlement,
   Site,
-  newId,
   storage,
 } from '../../lib/storage'
 
@@ -86,20 +85,23 @@ export default function ClientPage() {
   async function submitQuestion(e: React.FormEvent) {
     e.preventDefault()
     if (!question.trim() || !siteId) return
-    const item: ClientInquiry = {
-      id: newId(),
-      siteId,
-      question: question.trim(),
-      answer: '',
-      createdAt: new Date().toISOString(),
-      answeredAt: '',
+    try {
+      const item = await storage.clientInquiries.insert({
+        siteId,
+        question: question.trim(),
+        answer: '',
+        createdAt: new Date().toISOString(),
+        answeredAt: '',
+      })
+      setInquiries(prev => [...prev, item])
+      setQuestion('')
+      setSubmitted(true)
+      setTimeout(() => setSubmitted(false), 3000)
+      setTimeout(() => inquiryEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      alert(`문의 등록 실패: ${msg}`)
     }
-    await storage.clientInquiries.upsert(item)
-    setInquiries(prev => [...prev, item])
-    setQuestion('')
-    setSubmitted(true)
-    setTimeout(() => setSubmitted(false), 3000)
-    setTimeout(() => inquiryEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
   }
 
   if (site === undefined) {
@@ -486,15 +488,15 @@ export default function ClientPage() {
               onChange={e => {
                 setQuestion(e.target.value)
                 e.target.style.height = 'auto'
-                e.target.style.height = e.target.scrollHeight + 'px'
+                e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'
               }}
               placeholder="문의 내용 입력"
               lang="ko"
               inputMode="text"
               autoComplete="off"
               rows={1}
-              className="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-slate-400 resize-none overflow-hidden"
-              style={{ minHeight: '38px', maxHeight: '120px' }}
+              className="flex-1 min-w-0 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-slate-400 resize-none overflow-y-auto"
+              style={{ minHeight: '38px', maxHeight: '120px', wordBreak: 'break-all', overflowWrap: 'break-word' }}
             />
             <button
               type="submit"
