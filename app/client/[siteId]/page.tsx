@@ -1,5 +1,9 @@
 'use client'
 
+import FullCalendar from '@fullcalendar/react'
+import dayGridPlugin from '@fullcalendar/daygrid'
+import listPlugin from '@fullcalendar/list'
+import koLocale from '@fullcalendar/core/locales/ko'
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import {
@@ -13,6 +17,16 @@ import {
   newId,
   storage,
 } from '../../lib/storage'
+
+const PALETTE = [
+  '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6',
+  '#ef4444', '#06b6d4', '#f97316', '#84cc16',
+]
+function toFCEnd(endDate: string) {
+  const d = new Date(endDate + 'T00:00:00')
+  d.setDate(d.getDate() + 1)
+  return d.toISOString().slice(0, 10)
+}
 
 const STAGES = [
   { key: 'deposit' as const, label: '계약금' },
@@ -33,8 +47,12 @@ export default function ClientPage() {
   const [inquiries, setInquiries]   = useState<ClientInquiry[]>([])
   const [question, setQuestion]     = useState('')
   const [submitted, setSubmitted]   = useState(false)
+  const [mounted, setMounted]       = useState(false)
+  const [isMobile, setIsMobile]     = useState(false)
 
   useEffect(() => {
+    setMounted(true)
+    setIsMobile(window.innerWidth < 768)
     if (!siteId) return
     storage.sites.list().then(sites => setSite(sites.find(s => s.id === siteId) ?? null))
     storage.processItems.listBySite(siteId).then(setProcesses)
@@ -79,7 +97,16 @@ export default function ClientPage() {
     )
   }
 
-  const sortedProcesses = [...processes].sort((a, b) => a.date.localeCompare(b.date))
+  const calendarEvents = processes.map((item, idx) => ({
+    id: item.id,
+    title: item.content,
+    start: item.date,
+    end: toFCEnd(item.endDate ?? item.date),
+    backgroundColor: item.done ? '#94a3b8' : PALETTE[idx % PALETTE.length],
+    borderColor: item.done ? '#64748b' : PALETTE[idx % PALETTE.length],
+    textColor: '#fff',
+    classNames: item.done ? ['fc-client-done'] : [],
+  }))
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -100,53 +127,44 @@ export default function ClientPage() {
         {/* 공정 현황 */}
         <section>
           <h2 className="text-sm font-semibold text-slate-600 mb-3">공정 현황</h2>
-          {sortedProcesses.length === 0 ? (
+          {!mounted ? (
+            <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-sm text-slate-400">
+              로딩 중...
+            </div>
+          ) : processes.length === 0 ? (
             <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-sm text-slate-400">
               등록된 공정 내역이 없습니다.
             </div>
           ) : (
-            <>
-              {/* PC 타임라인 */}
-              <div className="hidden md:block bg-white rounded-xl border border-slate-200 overflow-hidden">
-                <div className="divide-y divide-slate-100">
-                  {sortedProcesses.map(p => (
-                    <div key={p.id} className="flex items-center gap-4 px-5 py-3">
-                      <span className="text-xs text-slate-400 w-24 shrink-0">{p.date}</span>
-                      <div className={`w-2 h-2 rounded-full shrink-0 ${p.done ? 'bg-green-500' : 'bg-blue-400'}`} />
-                      <span className={`flex-1 text-sm ${p.done ? 'line-through text-slate-400' : 'text-slate-700'}`}>
-                        {p.content}
-                      </span>
-                      {p.done && (
-                        <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full shrink-0">
-                          완료
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* 모바일 세로 리스트 */}
-              <div className="md:hidden space-y-2">
-                {sortedProcesses.map(p => (
-                  <div
-                    key={p.id}
-                    className={`bg-white rounded-xl border p-4 flex items-start gap-3 ${
-                      p.done ? 'border-green-200' : 'border-slate-200'
-                    }`}
-                  >
-                    <div className={`w-2 h-2 rounded-full shrink-0 mt-1.5 ${p.done ? 'bg-green-500' : 'bg-blue-400'}`} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-slate-400">{p.date}</p>
-                      <p className={`text-sm font-medium mt-0.5 ${p.done ? 'line-through text-slate-400' : 'text-slate-700'}`}>
-                        {p.content}
-                      </p>
-                    </div>
-                    {p.done && <span className="text-xs text-green-600 shrink-0">완료</span>}
-                  </div>
-                ))}
-              </div>
-            </>
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 overflow-hidden">
+              <style>{`
+                .fc-client-done .fc-event-title { text-decoration: line-through; opacity: 0.8; }
+                .fc { font-size: 0.82rem; }
+                .fc .fc-toolbar-title { font-size: 0.9rem; font-weight: 700; }
+                .fc .fc-button { font-size: 0.72rem; padding: 0.28rem 0.55rem; border-radius: 0.375rem; }
+                .fc .fc-button-primary { background-color: #1e293b; border-color: #1e293b; }
+                .fc .fc-button-primary:hover { background-color: #0f172a; border-color: #0f172a; }
+                .fc .fc-button-primary:not(:disabled).fc-button-active { background-color: #3b82f6; border-color: #3b82f6; }
+                .fc .fc-list-day-cushion { background-color: #f8fafc; }
+                .fc-list-event-title { font-size: 0.82rem; }
+              `}</style>
+              <FullCalendar
+                plugins={[dayGridPlugin, listPlugin]}
+                initialView={isMobile ? 'listMonth' : 'dayGridMonth'}
+                locale={koLocale}
+                headerToolbar={{
+                  left: 'prev,next',
+                  center: 'title',
+                  right: 'dayGridMonth,listMonth',
+                }}
+                buttonText={{ today: '오늘', month: '월간', list: '목록' }}
+                events={calendarEvents}
+                editable={false}
+                selectable={false}
+                dayMaxEvents={3}
+                height="auto"
+              />
+            </div>
           )}
         </section>
 
