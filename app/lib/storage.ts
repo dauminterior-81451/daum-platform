@@ -126,9 +126,11 @@ export interface DrawingFile {
 export interface ProcessItem {
   id: string
   siteId: string
-  date: string      // 시작일 (기존 date 컬럼)
-  endDate?: string  // 종료일 (inclusive), 신규 컬럼
+  date: string         // 시작일
+  endDate?: string     // 종료일 (inclusive)
   content: string
+  description?: string // 작업 예정 내용
+  photos?: string[]    // 시공 사진 URL 배열
   done: boolean
 }
 
