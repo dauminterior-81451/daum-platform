@@ -281,6 +281,30 @@ export const storage = {
         return { ...rest, done: completed }
       }) as ProcessItem[]
     },
+    // 신규 공정: id 제외하고 INSERT → DB가 UUID 자동 생성, 생성된 행 반환
+    insert: async (item: Omit<ProcessItem, 'id'>): Promise<ProcessItem> => {
+      const payload = {
+        siteId:      item.siteId,
+        content:     item.content,
+        date:        item.date,
+        endDate:     item.endDate ?? null,
+        description: item.description ?? '',
+        photos:      item.photos ?? [],
+        completed:   item.done,
+      }
+      const { data, error } = await supabase
+        .from('process_items')
+        .insert(payload)
+        .select()
+        .single()
+      if (error) {
+        console.error('[process_items:insert] FAILED', { message: error.message, code: error.code })
+        throw new Error(error.message)
+      }
+      const { completed, ...rest } = data as { completed: boolean } & Record<string, unknown>
+      return { ...rest, done: completed } as ProcessItem
+    },
+    // 기존 공정 수정: UUID id 포함 UPSERT
     upsert: async (item: ProcessItem): Promise<void> => {
       const payload = {
         id:          item.id,
@@ -290,17 +314,11 @@ export const storage = {
         endDate:     item.endDate ?? null,
         description: item.description ?? '',
         photos:      item.photos ?? [],
-        completed:   item.done,   // DB column is `completed`
+        completed:   item.done,
       }
-      console.log('[process_items:upsert] payload:', payload)
       const { error } = await supabase.from('process_items').upsert(payload as never)
       if (error) {
-        console.error('[process_items:upsert] FAILED', {
-          message: error.message,
-          details: error.details,
-          hint:    error.hint,
-          code:    error.code,
-        })
+        console.error('[process_items:upsert] FAILED', { message: error.message, code: error.code })
         throw new Error(error.message)
       }
     },

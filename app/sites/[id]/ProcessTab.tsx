@@ -99,23 +99,34 @@ export default function ProcessTab({ siteId }: { siteId: string }) {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     if (!form.content.trim() || !form.startDate) return
-    const id      = editId ?? formId
     const endDate = form.endDate >= form.startDate ? form.endDate : form.startDate
-    const item: ProcessItem = {
-      id, siteId,
-      content:     form.content.trim(),
-      date:        form.startDate,
-      endDate,
-      description: form.description,
-      photos:      form.photos,
-      done:        editId ? form.done : false,
-    }
     try {
-      await storage.processItems.upsert(item)
-      setList(prev => editId
-        ? prev.map(p => p.id === editId ? item : p)
-        : [...prev, item]
-      )
+      if (editId) {
+        // 수정: 기존 UUID 그대로 upsert
+        const item: ProcessItem = {
+          id: editId, siteId,
+          content:     form.content.trim(),
+          date:        form.startDate,
+          endDate,
+          description: form.description,
+          photos:      form.photos,
+          done:        form.done,
+        }
+        await storage.processItems.upsert(item)
+        setList(prev => prev.map(p => p.id === editId ? item : p))
+      } else {
+        // 신규: id 제외 insert → DB가 UUID 자동 생성
+        const newItem = await storage.processItems.insert({
+          siteId,
+          content:     form.content.trim(),
+          date:        form.startDate,
+          endDate,
+          description: form.description,
+          photos:      form.photos,
+          done:        false,
+        })
+        setList(prev => [...prev, newItem])
+      }
       setShowForm(false)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
@@ -224,7 +235,15 @@ export default function ProcessTab({ siteId }: { siteId: string }) {
           selectMirror
           dayMaxEvents={3}
           height="auto"
-          select={(info) => openNew(info.startStr, fromFCEnd(info.endStr))}
+          select={(info) => {
+            const clicked = info.startStr
+            const existing = list.find(p => {
+              const end = p.endDate ?? p.date
+              return p.date <= clicked && end >= clicked
+            })
+            if (existing) openEdit(existing)
+            else openNew(info.startStr, fromFCEnd(info.endStr))
+          }}
           eventClick={(info) => {
             const item = list.find(p => p.id === info.event.id)
             if (item) openEdit(item)
