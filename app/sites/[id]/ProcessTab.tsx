@@ -220,8 +220,11 @@ export default function ProcessTab({ siteId }: { siteId: string }) {
           buttonText={{ today: '오늘', month: '월간', list: '목록' }}
           events={events}
           editable
+          selectable
+          selectMirror
           dayMaxEvents={3}
           height="auto"
+          select={(info) => openNew(info.startStr, fromFCEnd(info.endStr))}
           eventClick={(info) => {
             const item = list.find(p => p.id === info.event.id)
             if (item) openEdit(item)

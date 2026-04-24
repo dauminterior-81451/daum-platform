@@ -275,7 +275,11 @@ export const storage = {
         .eq('siteId', siteId)
         .order('date', { ascending: true })
       if (error) console.error('[storage:process_items]', error)
-      return (data ?? []) as ProcessItem[]
+      // DB column is `completed`, TypeScript interface uses `done`
+      return (data ?? []).map((row: Record<string, unknown>) => {
+        const { completed, ...rest } = row as { completed: boolean } & Record<string, unknown>
+        return { ...rest, done: completed }
+      }) as ProcessItem[]
     },
     upsert: async (item: ProcessItem): Promise<void> => {
       const payload = {
@@ -286,7 +290,7 @@ export const storage = {
         endDate:     item.endDate ?? null,
         description: item.description ?? '',
         photos:      item.photos ?? [],
-        done:        item.done,
+        completed:   item.done,   // DB column is `completed`
       }
       console.log('[process_items:upsert] payload:', payload)
       const { error } = await supabase.from('process_items').upsert(payload as never)
