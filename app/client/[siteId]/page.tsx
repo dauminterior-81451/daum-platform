@@ -260,33 +260,21 @@ export default function ClientPage() {
   }
 
   function MaterialTab() {
-    const hasImages = materialFiles.length > 0
+    const imageFiles = materialFiles.filter(f => f.fileType?.startsWith('image/'))
+    const otherFiles = materialFiles.filter(f => !f.fileType?.startsWith('image/'))
     return (
       <div className="space-y-5">
+        {/* 자재 목록 */}
         {materials.length > 0 ? (
-          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[320px]">
-                <thead className="bg-slate-50 text-xs text-slate-400">
-                  <tr>
-                    <th className="px-4 py-3 text-left font-medium">자재명</th>
-                    <th className="px-4 py-3 text-left font-medium">규격</th>
-                    <th className="px-4 py-3 text-left font-medium">브랜드</th>
-                    <th className="px-4 py-3 text-left font-medium">수량</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {materials.map(m => (
-                    <tr key={m.id}>
-                      <td className="px-4 py-3 font-medium text-slate-800">{m.name}</td>
-                      <td className="px-4 py-3 text-slate-500">{m.spec || '—'}</td>
-                      <td className="px-4 py-3 text-slate-500">{m.supplier || '—'}</td>
-                      <td className="px-4 py-3 text-slate-600">{m.qty}{m.unit}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          <div className="space-y-2">
+            {materials.map(m => (
+              <div key={m.id} className="bg-white rounded-xl border border-slate-200 p-4">
+                <p className="text-sm font-semibold text-slate-800">{m.name}</p>
+                {m.note && (
+                  <p className="text-sm text-slate-500 mt-1 leading-relaxed whitespace-pre-wrap">{m.note}</p>
+                )}
+              </div>
+            ))}
           </div>
         ) : (
           <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-sm text-slate-400">
@@ -294,19 +282,33 @@ export default function ClientPage() {
           </div>
         )}
 
-        {hasImages && (
+        {/* 자재 이미지 */}
+        {imageFiles.length > 0 && (
           <div>
             <p className="text-xs font-semibold text-slate-500 mb-2 px-1">자재 이미지</p>
             <div className="grid grid-cols-2 gap-2">
-              {materialFiles.map(f => (
-                <div key={f.id} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                  {f.fileType?.startsWith('image/') ? (
-                    <img src={f.url} alt={f.name} className="w-full aspect-square object-cover" />
-                  ) : (
-                    <div className="w-full aspect-square flex items-center justify-center text-slate-300 text-3xl">📄</div>
-                  )}
+              {imageFiles.map(f => (
+                <a key={f.id} href={f.url} target="_blank" rel="noopener noreferrer"
+                   className="bg-white rounded-xl border border-slate-200 overflow-hidden block">
+                  <img src={f.url} alt={f.name} className="w-full aspect-square object-cover" />
                   <p className="text-xs text-slate-500 px-2 py-1.5 truncate">{f.name}</p>
-                </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 기타 파일 (PDF 등) */}
+        {otherFiles.length > 0 && (
+          <div>
+            <p className="text-xs font-semibold text-slate-500 mb-2 px-1">첨부 파일</p>
+            <div className="space-y-2">
+              {otherFiles.map(f => (
+                <a key={f.id} href={f.url} target="_blank" rel="noopener noreferrer"
+                   className="bg-white rounded-xl border border-slate-200 p-3 flex items-center gap-3 block hover:bg-slate-50">
+                  <span className="text-xl shrink-0">📄</span>
+                  <span className="text-sm text-slate-700 truncate">{f.name}</span>
+                </a>
               ))}
             </div>
           </div>

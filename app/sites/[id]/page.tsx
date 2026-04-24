@@ -1170,9 +1170,23 @@ function MaterialTab({ siteId }: { siteId: string }) {
               />
             </div>
 
+            {/* 내용 */}
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">내용 <span className="text-slate-400 font-normal">(규격·브랜드·특이사항 등)</span></label>
+              <textarea
+                lang="ko"
+                inputMode="text"
+                value={form.note}
+                onChange={e => setForm({ ...form, note: e.target.value })}
+                rows={3}
+                placeholder="자유롭게 입력하세요"
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-slate-400 resize-none"
+              />
+            </div>
+
             {/* 규격 */}
             <div>
-              <label className="text-xs text-slate-500 mb-1 block">규격</label>
+              <label className="text-xs text-slate-500 mb-1 block">규격 <span className="text-slate-400 font-normal">(관리용)</span></label>
               <input
                 type="text"
                 value={form.spec}
@@ -1288,7 +1302,7 @@ function MaterialTab({ siteId }: { siteId: string }) {
             <table className="w-full text-sm min-w-[640px]">
               <thead className="bg-slate-50 text-slate-400 text-xs">
                 <tr>
-                  {['자재명', '규격', '수량', '단가', '금액', '공급업체', '입고예정일', ''].map((h) => (
+                  {['자재명', '내용', '규격', '수량', '단가', '금액', '공급업체', '입고예정일', ''].map((h) => (
                     <th key={h} className="px-4 py-3 text-left font-medium whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -1297,11 +1311,14 @@ function MaterialTab({ siteId }: { siteId: string }) {
                 {list.map((m) => (
                   <tr key={m.id} className="hover:bg-slate-50">
                     <td className="px-4 py-3 font-medium text-slate-800">{m.name}</td>
-                    <td className="px-4 py-3 text-slate-500">{m.spec}</td>
+                    <td className="px-4 py-3 text-slate-600 max-w-[160px]">
+                      <span className="block truncate" title={m.note}>{m.note || '—'}</span>
+                    </td>
+                    <td className="px-4 py-3 text-slate-500">{m.spec || '—'}</td>
                     <td className="px-4 py-3">{m.qty}{m.unit}</td>
                     <td className="px-4 py-3">{m.unitPrice.toLocaleString()}원</td>
                     <td className="px-4 py-3 font-medium text-orange-600">{(m.qty * m.unitPrice).toLocaleString()}원</td>
-                    <td className="px-4 py-3 text-slate-500">{m.supplier}</td>
+                    <td className="px-4 py-3 text-slate-500">{m.supplier || '—'}</td>
                     <td className="px-4 py-3 text-slate-500">{m.purchaseDate}</td>
                     <td className="px-4 py-3 text-right space-x-2 whitespace-nowrap">
                       <button onClick={() => openEdit(m)} className="text-xs text-blue-600 hover:underline">수정</button>
