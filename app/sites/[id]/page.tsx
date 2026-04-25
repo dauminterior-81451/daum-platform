@@ -532,15 +532,19 @@ function QuoteTab({ siteId }: { siteId: string }) {
                               onCompositionEnd={() => { isComposing.current = false }}
                               onKeyDown={onEnter}
                               className="flex-[2] min-w-0 border border-slate-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:border-slate-400" />
-                            <input value={item.desc} onChange={(e) => updateItem(g.id, item.id, 'desc', e.target.value)}
+                            <textarea value={item.desc} onChange={(e) => {
+                                updateItem(g.id, item.id, 'desc', e.target.value)
+                                e.target.style.height = 'auto'
+                                e.target.style.height = e.target.scrollHeight + 'px'
+                              }}
                               placeholder="내용"
                               autoComplete="off"
                               lang="ko"
-                              inputMode="text"
+                              rows={2}
                               onCompositionStart={() => { isComposing.current = true }}
                               onCompositionEnd={() => { isComposing.current = false }}
-                              onKeyDown={onEnter}
-                              className="flex-[3] min-w-0 border border-slate-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:border-slate-400" />
+                              className="flex-[3] min-w-0 border border-slate-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:border-slate-400 resize-none overflow-hidden"
+                              style={{ wordBreak: 'break-all', overflowWrap: 'break-word' }} />
                             <input type="text" inputMode="numeric"
                               value={item.unitPrice ? item.unitPrice.toLocaleString() : ''}
                               placeholder="0"
