@@ -495,7 +495,7 @@ export default function ClientPage() {
               inputMode="text"
               autoComplete="off"
               rows={1}
-              className="flex-1 min-w-0 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-slate-400 resize-none overflow-y-auto"
+              className="flex-1 w-full min-w-0 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-slate-400 resize-none overflow-y-auto"
               style={{ minHeight: '38px', maxHeight: '120px', wordBreak: 'break-all', overflowWrap: 'break-word' }}
             />
             <button
