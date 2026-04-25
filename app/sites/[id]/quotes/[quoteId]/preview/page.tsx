@@ -147,7 +147,7 @@ export default function QuotePreviewPage() {
         ${isCustomer ? 'aside { display: none !important; }' : ''}
       `}</style>
       <div className="print-doc fixed inset-0 z-[100] bg-white overflow-auto">
-        <div id="quote-print-area" className="max-w-3xl mx-auto px-8 py-10">
+        <div id="quote-print-area" className="max-w-3xl mx-auto px-4 py-6 md:px-8 md:py-10">
 
           {/* 헤더 */}
           <div className="flex items-start justify-between mb-8 pb-6 border-b-2 border-slate-800">
@@ -185,8 +185,8 @@ export default function QuotePreviewPage() {
             <table className="w-full text-sm">
               <thead className="bg-slate-800 text-white">
                 <tr>
-                  {['품목', '항목명', '내용', '단가', '수량', '단위', '금액'].map(h => (
-                    <th key={h} className="px-3 py-2.5 text-left text-xs font-semibold last:text-right">{h}</th>
+                  {['항목명', '내용', '단가', '수량', '단위', '금액'].map(h => (
+                    <th key={h} className="px-2 py-2 text-left text-xs font-semibold last:text-right">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -196,22 +196,21 @@ export default function QuotePreviewPage() {
                 return (
                   <tbody key={gi} className="border-t-2 border-slate-200">
                     <tr className="bg-slate-100">
-                      <td colSpan={6} className="px-3 py-2 font-semibold text-slate-700 text-xs">
+                      <td colSpan={5} className="px-2 py-1.5 font-semibold text-slate-700 text-xs">
                         {g.name || '(품목)'}
                       </td>
-                      <td className="px-3 py-2 text-right font-bold text-slate-700 text-xs">
+                      <td className="px-2 py-1.5 text-right font-bold text-slate-700 text-xs">
                         {subtotal.toLocaleString()}원
                       </td>
                     </tr>
                     {valid.map((item, ii) => (
                       <tr key={ii} className={`border-t border-slate-100 ${ii % 2 === 1 ? 'bg-slate-50/50' : ''}`}>
-                        <td className="px-3 py-2 text-slate-300 text-xs pl-5">└</td>
-                        <td className="px-3 py-2 text-slate-800">{item.name}</td>
-                        <td className="px-3 py-2 text-slate-500 text-xs whitespace-pre-wrap max-w-[140px]">{item.desc}</td>
-                        <td className="px-3 py-2 text-right text-slate-700">{item.unitPrice.toLocaleString()}</td>
-                        <td className="px-3 py-2 text-center">{item.qty}</td>
-                        <td className="px-3 py-2 text-center">{item.unit}</td>
-                        <td className="px-3 py-2 text-right font-medium">{(item.qty * item.unitPrice).toLocaleString()}원</td>
+                        <td className="px-2 py-1.5 text-xs text-slate-800">{item.name}</td>
+                        <td className="px-2 py-1.5 text-slate-500 text-xs whitespace-pre-wrap">{item.desc}</td>
+                        <td className="px-2 py-1.5 text-right text-xs text-slate-700">{item.unitPrice.toLocaleString()}</td>
+                        <td className="px-2 py-1.5 text-center text-xs">{item.qty}</td>
+                        <td className="px-2 py-1.5 text-center text-xs">{item.unit}</td>
+                        <td className="px-2 py-1.5 text-right text-xs font-medium">{(item.qty * item.unitPrice).toLocaleString()}원</td>
                       </tr>
                     ))}
                   </tbody>

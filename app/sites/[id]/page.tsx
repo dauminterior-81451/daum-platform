@@ -346,7 +346,6 @@ function QuoteTab({ siteId }: { siteId: string }) {
   const [note, setNote]       = useState('')
   const [groups, setGroups]       = useState<LocalGroup[]>([makeGroup()])
   const [taxMode, setTaxMode]     = useState<'exc' | 'inc' | 'none'>('exc')
-  const [editingDescId, setEditingDescId] = useState<string | null>(null)
   const isComposing = useRef(false)
 
   function focusNext(el: HTMLElement) {
@@ -511,21 +510,19 @@ function QuoteTab({ siteId }: { siteId: string }) {
                           className="text-red-400 hover:text-red-600 text-sm shrink-0">✕</button>
                       </div>
                       {/* 컬럼 헤더 */}
-                      <div className="grid gap-1 px-3 pt-2 pb-0.5 text-xs text-slate-400 min-w-[520px]"
-                           style={{ gridTemplateColumns: '3fr 4fr 2fr 1fr 1fr 2fr 1.5rem' }}>
-                        <span>항목명</span>
-                        <span>내용</span>
-                        <span className="text-right">단가</span>
-                        <span className="text-center">수량</span>
-                        <span className="text-center">단위</span>
-                        <span className="text-right">합계</span>
-                        <span />
+                      <div className="flex gap-1 px-3 pt-2 pb-0.5 text-xs text-slate-400">
+                        <span className="flex-[2] min-w-0">항목명</span>
+                        <span className="flex-[3] min-w-0">내용</span>
+                        <span className="flex-[2] min-w-0 text-right">단가</span>
+                        <span className="flex-[1] min-w-0 text-center">수량</span>
+                        <span className="flex-[1] min-w-0 text-center">단위</span>
+                        <span className="flex-[2] min-w-0 text-right">합계</span>
+                        <span className="w-5 shrink-0" />
                       </div>
                       {/* 항목 */}
-                      <div className="px-3 pb-2 space-y-0.5 overflow-x-auto">
+                      <div className="px-3 pb-2 space-y-0.5">
                         {g.items.map((item) => (
-                          <div key={item.id} className="grid gap-1 items-start py-1 border-b border-slate-50 last:border-0 min-w-[520px]"
-                               style={{ gridTemplateColumns: '3fr 4fr 2fr 1fr 1fr 2fr 1.5rem' }}>
+                          <div key={item.id} className="flex gap-1 items-center py-1 border-b border-slate-50 last:border-0">
                             <input value={item.name} onChange={(e) => updateItem(g.id, item.id, 'name', e.target.value)}
                               placeholder="항목명"
                               autoComplete="off"
@@ -534,52 +531,39 @@ function QuoteTab({ siteId }: { siteId: string }) {
                               onCompositionStart={() => { isComposing.current = true }}
                               onCompositionEnd={() => { isComposing.current = false }}
                               onKeyDown={onEnter}
-                              className="border border-slate-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:border-slate-400" />
-                            <div>
-                              {editingDescId === item.id ? (
-                                <textarea autoFocus value={item.desc}
-                                  onChange={(e) => {
-                                    e.target.style.height = 'auto'
-                                    e.target.style.height = e.target.scrollHeight + 'px'
-                                    updateItem(g.id, item.id, 'desc', e.target.value)
-                                  }}
-                                  onBlur={() => setEditingDescId(null)}
-                                  className="w-full border border-slate-400 rounded px-2 py-1.5 text-xs focus:outline-none resize-none overflow-hidden"
-                                  style={{ minHeight: '32px' }}
-                                />
-                              ) : (
-                                <div onClick={() => setEditingDescId(item.id)}
-                                  className="group/desc flex items-start gap-1 min-h-[32px] px-2 py-1.5 rounded border border-transparent hover:border-slate-200 cursor-pointer">
-                                  <span className="flex-1 text-xs text-slate-600 whitespace-pre-wrap break-all">
-                                    {item.desc ? item.desc : <span className="text-slate-300">내용</span>}
-                                  </span>
-                                  <span className="opacity-0 group-hover/desc:opacity-100 text-slate-400 text-xs shrink-0 mt-0.5">✎</span>
-                                </div>
-                              )}
-                            </div>
+                              className="flex-[2] min-w-0 border border-slate-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:border-slate-400" />
+                            <input value={item.desc} onChange={(e) => updateItem(g.id, item.id, 'desc', e.target.value)}
+                              placeholder="내용"
+                              autoComplete="off"
+                              lang="ko"
+                              inputMode="text"
+                              onCompositionStart={() => { isComposing.current = true }}
+                              onCompositionEnd={() => { isComposing.current = false }}
+                              onKeyDown={onEnter}
+                              className="flex-[3] min-w-0 border border-slate-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:border-slate-400" />
                             <input type="text" inputMode="numeric"
                               value={item.unitPrice ? item.unitPrice.toLocaleString() : ''}
                               placeholder="0"
                               onChange={(e) => updateItem(g.id, item.id, 'unitPrice', Number(e.target.value.replace(/[^0-9]/g, '')) || 0)}
                               onKeyDown={onEnter}
-                              className="border border-slate-200 rounded px-2 py-1.5 text-xs text-right focus:outline-none focus:border-slate-400" />
+                              className="flex-[2] min-w-0 border border-slate-200 rounded px-2 py-1.5 text-xs text-right focus:outline-none focus:border-slate-400" />
                             <input type="text" inputMode="numeric"
                               value={item.qty || ''}
                               placeholder="0"
                               onChange={(e) => updateItem(g.id, item.id, 'qty', Number(e.target.value.replace(/[^0-9]/g, '')) || 0)}
                               onKeyDown={onEnter}
-                              className="border border-slate-200 rounded px-2 py-1.5 text-xs text-center focus:outline-none focus:border-slate-400" />
+                              className="flex-[1] min-w-0 border border-slate-200 rounded px-2 py-1.5 text-xs text-center focus:outline-none focus:border-slate-400" />
                             <input value={item.unit} onChange={(e) => updateItem(g.id, item.id, 'unit', e.target.value)}
                               autoComplete="off"
                               onCompositionStart={() => { isComposing.current = true }}
                               onCompositionEnd={() => { isComposing.current = false }}
                               onKeyDown={onEnter}
-                              className="border border-slate-200 rounded px-2 py-1.5 text-xs text-center focus:outline-none focus:border-slate-400" />
-                            <span className="text-xs text-right text-slate-500 font-medium pt-1.5 whitespace-nowrap">
+                              className="flex-[1] min-w-0 border border-slate-200 rounded px-2 py-1.5 text-xs text-center focus:outline-none focus:border-slate-400" />
+                            <span className="flex-[2] min-w-0 text-xs text-right text-slate-500 font-medium whitespace-nowrap">
                               {((item.qty || 0) * (item.unitPrice || 0)).toLocaleString()}원
                             </span>
                             <button type="button" onClick={() => removeItem(g.id, item.id)}
-                              className="text-red-400 hover:text-red-600 text-xs text-center pt-1.5">✕</button>
+                              className="w-5 shrink-0 text-red-400 hover:text-red-600 text-xs text-center">✕</button>
                           </div>
                         ))}
                         <button type="button" onClick={() => addItem(g.id)}
