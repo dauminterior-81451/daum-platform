@@ -4,7 +4,7 @@ import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import listPlugin from '@fullcalendar/list'
 import koLocale from '@fullcalendar/core/locales/ko'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
 import {
   ClientInquiry,
@@ -66,6 +66,13 @@ export default function ClientPage() {
   const [tab, setTab]                 = useState<TabKey>('home')
   const [detailItem, setDetailItem]   = useState<ProcessItem | null>(null)
   const inquiryEndRef                 = useRef<HTMLDivElement>(null)
+  const textareaRef                   = useRef<HTMLTextAreaElement>(null)
+
+  const handleQuestionChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setQuestion(e.target.value)
+    e.target.style.height = 'auto'
+    e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'
+  }, [])
 
   useEffect(() => {
     setMounted(true)
@@ -484,12 +491,9 @@ export default function ClientPage() {
           <label className="text-xs text-slate-500 mb-1.5 block">궁금하신 사항을 남겨주세요</label>
           <div className="flex gap-2 items-end w-full min-w-0 overflow-hidden">
             <textarea
+              ref={textareaRef}
               value={question}
-              onChange={e => {
-                setQuestion(e.target.value)
-                e.target.style.height = 'auto'
-                e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'
-              }}
+              onChange={handleQuestionChange}
               placeholder="문의 내용 입력"
               lang="ko"
               inputMode="text"
@@ -550,7 +554,7 @@ export default function ClientPage() {
         {tab === 'material' && <MaterialTab />}
         {tab === 'drawing'  && <DrawingTab />}
         {tab === 'payment'  && <PaymentTab />}
-        {tab === 'inquiry'  && <InquiryTab />}
+        {tab === 'inquiry'  && InquiryTab()}
       </div>
 
       {/* 모바일 하단 네비게이션 바 */}
