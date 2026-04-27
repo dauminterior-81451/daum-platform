@@ -95,7 +95,7 @@ export default function ClientPage() {
     try {
       const item = await storage.clientInquiries.insert({
         siteId,
-        question: question.trim(),
+        content: question.trim(),
         createdAt: new Date().toISOString(),
       })
       setInquiries(prev => [...prev, item])
@@ -453,7 +453,7 @@ export default function ClientPage() {
               <div className="flex justify-end">
                 <div className="max-w-[78%]">
                   <div className="bg-blue-500 text-white rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm leading-relaxed">
-                    {iq.question}
+                    {iq.content}
                   </div>
                   <p className="text-xs text-slate-400 mt-1 text-right">{iq.createdAt.slice(0, 10)}</p>
                 </div>

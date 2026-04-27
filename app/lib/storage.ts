@@ -154,7 +154,7 @@ export interface ClientNotice {
 export interface ClientInquiry {
   id: string
   siteId: string
-  question: string
+  content: string
   answer?: string | null
   createdAt: string
   answeredAt?: string | null

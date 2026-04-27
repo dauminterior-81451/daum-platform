@@ -177,7 +177,7 @@ function InquiryCard({
     <div className="border border-slate-200 rounded-lg p-3 space-y-2">
       <div>
         <p className="text-xs text-slate-400 mb-0.5">{inquiry.createdAt.slice(0, 10)} · 고객 문의</p>
-        <p className="text-sm text-slate-700 font-medium">{inquiry.question}</p>
+        <p className="text-sm text-slate-700 font-medium">{inquiry.content}</p>
       </div>
       {editing ? (
         <div className="space-y-2">
