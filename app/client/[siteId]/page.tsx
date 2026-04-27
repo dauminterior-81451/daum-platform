@@ -96,9 +96,7 @@ export default function ClientPage() {
       const item = await storage.clientInquiries.insert({
         siteId,
         question: question.trim(),
-        answer: '',
         createdAt: new Date().toISOString(),
-        answeredAt: '',
       })
       setInquiries(prev => [...prev, item])
       setQuestion('')

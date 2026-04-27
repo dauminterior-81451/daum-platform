@@ -155,9 +155,9 @@ export interface ClientInquiry {
   id: string
   siteId: string
   question: string
-  answer: string
+  answer?: string | null
   createdAt: string
-  answeredAt: string
+  answeredAt?: string | null
 }
 
 export interface EmailLog {
