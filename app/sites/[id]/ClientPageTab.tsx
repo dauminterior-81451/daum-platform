@@ -62,7 +62,7 @@ export default function ClientPageTab({ siteId }: { siteId: string }) {
     const updated: ClientInquiry = {
       ...iq,
       answer: answer.trim(),
-      answeredAt: new Date().toISOString(),
+      answered_at: new Date().toISOString(),
     }
     await storage.clientInquiries.upsert(updated)
     setInquiries(prev => prev.map(i => i.id === iq.id ? updated : i))

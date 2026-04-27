@@ -471,8 +471,8 @@ export default function ClientPage() {
                       답변 준비 중입니다.
                     </div>
                   )}
-                  {iq.answeredAt && (
-                    <p className="text-xs text-slate-400 mt-1 px-1">{iq.answeredAt.slice(0, 10)}</p>
+                  {iq.answered_at && (
+                    <p className="text-xs text-slate-400 mt-1 px-1">{iq.answered_at.slice(0, 10)}</p>
                   )}
                 </div>
               </div>

@@ -157,7 +157,7 @@ export interface ClientInquiry {
   content: string
   answer?: string | null
   createdAt: string
-  answeredAt?: string | null
+  answered_at?: string | null
 }
 
 export interface EmailLog {
@@ -384,7 +384,16 @@ export const storage = {
       }
       return data as ClientInquiry
     },
-    upsert: (item: ClientInquiry) => upsertRow('client_inquiries', item),
+    upsert: async (item: ClientInquiry): Promise<void> => {
+      const { error } = await supabase
+        .from('client_inquiries')
+        .update({ answer: item.answer, answered_at: item.answered_at })
+        .eq('id', item.id)
+      if (error) {
+        console.error('[client_inquiries:upsert] FAILED', { message: error.message, code: error.code })
+        throw new Error(error.message)
+      }
+    },
     remove: (id: string) => deleteRow('client_inquiries', id),
   },
   emailLogs: {
