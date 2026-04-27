@@ -1,5 +1,12 @@
 'use client'
 
+declare global {
+  interface Window {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    Kakao: any
+  }
+}
+
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import listPlugin from '@fullcalendar/list'
@@ -88,6 +95,25 @@ export default function ClientPage() {
     storage.clientNotices.listBySite(siteId).then(setNotices)
     storage.clientInquiries.listBySite(siteId).then(setInquiries)
   }, [siteId])
+
+  function shareViaKakao() {
+    const kakao = window.Kakao
+    if (!kakao) return
+    if (!kakao.isInitialized()) {
+      kakao.init('d9b736e3c3348d1fabdda4e05c7d2f21')
+    }
+    const pageUrl = `https://daum-platform.vercel.app/client/${siteId}`
+    kakao.Share.sendDefault({
+      objectType: 'feed',
+      content: {
+        title: `${site!.name} 공사 진행 현황`,
+        description: '다움인테리어 고객 전용 페이지입니다',
+        imageUrl: 'https://daum-platform.vercel.app/next.svg',
+        link: { mobileWebUrl: pageUrl, webUrl: pageUrl },
+      },
+      buttons: [{ title: '확인하기', link: { mobileWebUrl: pageUrl, webUrl: pageUrl } }],
+    })
+  }
 
   async function submitQuestion(e: React.FormEvent) {
     e.preventDefault()
@@ -520,12 +546,21 @@ export default function ClientPage() {
     <div className="min-h-screen bg-slate-50 flex flex-col">
 
       {/* 고정 헤더 */}
-      <div className="sticky top-0 z-30 bg-white border-b border-slate-200 px-4 py-4 text-center shadow-sm">
+      <div className="sticky top-0 z-30 bg-white border-b border-slate-200 px-4 py-4 text-center shadow-sm relative">
         <p className="text-xs text-slate-400 mb-0.5">공사 현황</p>
         <h1 className="text-lg font-bold text-slate-800">{site.name}</h1>
         {site.customerName && (
           <p className="text-sm text-slate-500 mt-0.5">{site.customerName} 고객님</p>
         )}
+        <button
+          onClick={shareViaKakao}
+          className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 bg-[#FEE500] text-[#3A1D1D] text-xs font-semibold px-3 py-1.5 rounded-full shadow-sm hover:brightness-95 active:brightness-90 transition"
+        >
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true">
+            <path d="M12 3C6.477 3 2 6.477 2 10.5c0 2.67 1.628 5.01 4.09 6.41l-.89 3.32a.25.25 0 0 0 .38.28l3.75-2.5c.87.12 1.77.19 2.67.19 5.523 0 10-3.477 10-7.5S17.523 3 12 3z"/>
+          </svg>
+          공유
+        </button>
       </div>
 
       {/* 데스크톱 가로 탭바 */}
