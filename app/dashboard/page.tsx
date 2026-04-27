@@ -2,7 +2,24 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { storage, Site } from '../lib/storage'
+import { Quote, Settlement, storage, Site } from '../lib/storage'
+
+function calcQuoteTotal(quotes: Quote[], siteId: string): number {
+  const sq = quotes.filter(q => q.siteId === siteId)
+  if (sq.length === 0) return 0
+  const last = sq.reduce((a, b) => (b.revision ?? 1) >= (a.revision ?? 1) ? b : a)
+  const supply = last.items
+    .filter(i => i.unit !== '__group__')
+    .reduce((s, i) => s + i.qty * i.unitPrice, 0)
+  const tm = last.taxMode ?? 'exc'
+  return tm === 'exc' ? Math.round(supply * 1.1) : supply
+}
+
+function calcSettlementPaid(s: Settlement): number {
+  return (['deposit', 'startup', 'interim', 'balance'] as const)
+    .filter(k => s[k].paid)
+    .reduce((sum, k) => sum + (s[k].amount || 0), 0)
+}
 
 export default function DashboardPage() {
   const [data, setData] = useState({
@@ -17,14 +34,20 @@ export default function DashboardPage() {
   useEffect(() => {
     Promise.all([
       storage.sites.list(),
-      storage.payments.list(),
       storage.quotes.list(),
-    ]).then(([sites, payments, quotes]) => {
-      const totalPayment = payments.reduce((s, p) => s + p.amount, 0)
-      const totalQuote   = quotes.reduce(
-        (s, q) => s + q.items.reduce((a, i) => a + i.qty * i.unitPrice, 0),
-        0
+    ]).then(async ([sites, quotes]) => {
+      const settled = await Promise.all(
+        sites.map(s => storage.settlements.get(s.id))
       )
+
+      let totalPayment = 0
+      let totalQuote = 0
+      sites.forEach((site, i) => {
+        const settlement = settled[i]
+        totalQuote   += settlement?.contractTotal ?? calcQuoteTotal(quotes, site.id)
+        totalPayment += settlement ? calcSettlementPaid(settlement) : 0
+      })
+
       const recentSites = [...sites]
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
         .slice(0, 5)
