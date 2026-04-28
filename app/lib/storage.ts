@@ -160,6 +160,16 @@ export interface ClientInquiry {
   answered_at?: string | null
 }
 
+export interface SiteExpense {
+  id: string
+  siteId: string
+  type: 'labor' | 'misc'
+  description: string
+  amount: number
+  date: string
+  memo: string
+}
+
 export interface EmailLog {
   id: string
   siteId: string | null
@@ -395,6 +405,20 @@ export const storage = {
       }
     },
     remove: (id: string) => deleteRow('client_inquiries', id),
+  },
+  siteExpenses: {
+    list: (): Promise<SiteExpense[]> => select<SiteExpense>('site_expenses'),
+    listBySite: async (siteId: string): Promise<SiteExpense[]> => {
+      const { data, error } = await supabase
+        .from('site_expenses')
+        .select('*')
+        .eq('siteId', siteId)
+        .order('date', { ascending: true })
+      if (error) console.error('[storage:site_expenses]', error)
+      return (data ?? []) as SiteExpense[]
+    },
+    upsert: (item: SiteExpense) => upsertRow('site_expenses', item),
+    remove: (id: string) => deleteRow('site_expenses', id),
   },
   emailLogs: {
     list: async (): Promise<EmailLog[]> => {
