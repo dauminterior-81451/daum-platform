@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { Quote, Settlement, storage, Site } from '../lib/storage'
+import { Material, Quote, Settlement, SiteExpense, storage, Site } from '../lib/storage'
 
 function calcQuoteTotal(quotes: Quote[], siteId: string): number {
   const sq = quotes.filter(q => q.siteId === siteId)
@@ -29,13 +29,19 @@ export default function DashboardPage() {
     totalPayment: 0,
     unpaid: 0,
     recentSites: [] as Site[],
+    totalCost: 0,
+    expectedMargin: 0,
+    realizedMargin: 0,
+    marginRate: null as number | null,
   })
 
   useEffect(() => {
     Promise.all([
       storage.sites.list(),
       storage.quotes.list(),
-    ]).then(async ([sites, quotes]) => {
+      storage.materials.list(),
+      storage.siteExpenses.list(),
+    ]).then(async ([sites, quotes, materials, siteExpenses]) => {
       const settled = await Promise.all(
         sites.map(s => storage.settlements.get(s.id))
       )
@@ -53,6 +59,17 @@ export default function DashboardPage() {
         .slice(0, 5)
       const uniqueCustomers = new Set(sites.map(s => s.customerName).filter(Boolean)).size
 
+      let totalCost = 0
+      sites.forEach(site => {
+        const matCost   = (materials as Material[]).filter(m => m.siteId === site.id).reduce((s, m) => s + m.qty * m.unitPrice, 0)
+        const laborCost = (siteExpenses as SiteExpense[]).filter(e => e.siteId === site.id && e.type === 'labor').reduce((s, e) => s + e.amount, 0)
+        const miscCost  = (siteExpenses as SiteExpense[]).filter(e => e.siteId === site.id && e.type === 'misc').reduce((s, e) => s + e.amount, 0)
+        totalCost += matCost + laborCost + miscCost
+      })
+      const expectedMargin = totalQuote - totalCost
+      const realizedMargin = totalPayment - totalCost
+      const marginRate     = totalQuote > 0 ? Math.round((expectedMargin / totalQuote) * 100) : null
+
       setData({
         sites: sites.length,
         customers: uniqueCustomers,
@@ -60,6 +77,10 @@ export default function DashboardPage() {
         totalPayment,
         unpaid: Math.max(0, totalQuote - totalPayment),
         recentSites,
+        totalCost,
+        expectedMargin,
+        realizedMargin,
+        marginRate,
       })
     })
   }, [])
@@ -115,6 +136,31 @@ export default function DashboardPage() {
         >
           입금 관리 →
         </Link>
+      </div>
+
+      {/* 마진 현황 */}
+      <div className="grid grid-cols-3 gap-3 mb-5">
+        <div className="bg-white border border-slate-200 rounded-xl px-4 py-4">
+          <p className="text-xs text-slate-400 mb-1.5">총 지출</p>
+          <p className="text-2xl font-bold text-slate-800">{data.totalCost.toLocaleString()}원</p>
+          <p className="text-xs text-slate-400 mt-1">자재비 + 인건비 + 기타잡비</p>
+        </div>
+        <div className={`border rounded-xl px-4 py-4 ${data.expectedMargin >= 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+          <p className="text-xs text-slate-400 mb-1.5">예상 마진</p>
+          <p className={`text-2xl font-bold ${data.expectedMargin >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+            {data.expectedMargin.toLocaleString()}원
+          </p>
+          {data.marginRate !== null && (
+            <p className="text-xs text-slate-400 mt-1">마진율 {data.marginRate}%</p>
+          )}
+        </div>
+        <div className={`border rounded-xl px-4 py-4 ${data.realizedMargin >= 0 ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200'}`}>
+          <p className="text-xs text-slate-400 mb-1.5">실현 마진</p>
+          <p className={`text-2xl font-bold ${data.realizedMargin >= 0 ? 'text-blue-700' : 'text-red-600'}`}>
+            {data.realizedMargin.toLocaleString()}원
+          </p>
+          <p className="text-xs text-slate-400 mt-1">수금액 기준</p>
+        </div>
       </div>
 
       {/* 최근 현장 목록 */}
