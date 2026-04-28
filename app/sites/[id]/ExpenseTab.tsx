@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Material, Settlement, SiteExpense, newId, storage } from '../../lib/storage'
+import { Material, Quote, Settlement, SiteExpense, newId, storage } from '../../lib/storage'
 
-type ExpenseType = 'labor' | 'misc'
+type ExpenseType = 'labor' | 'misc' | 'material'
 type ExpenseForm = { description: string; amount: number; date: string; memo: string; category: string }
 
 const defaultForm = (): ExpenseForm => ({
@@ -20,12 +20,24 @@ function calcSettlementPaid(s: Settlement): number {
     .reduce((sum, k) => sum + (s[k].amount || 0), 0)
 }
 
+// contractTotal이 0일 경우 최신 견적서 합계를 대체값으로 사용
+function calcQuoteTotal(quotes: Quote[]): number {
+  if (quotes.length === 0) return 0
+  const last = quotes.reduce((a, b) => (b.revision ?? 1) >= (a.revision ?? 1) ? b : a)
+  const supply = last.items
+    .filter(i => i.unit !== '__group__')
+    .reduce((s, i) => s + i.qty * i.unitPrice, 0)
+  const tm = last.taxMode ?? 'exc'
+  return tm === 'exc' ? Math.round(supply * 1.1) : supply
+}
+
 function marginColor(val: number): string {
   return val >= 0 ? 'text-green-700' : 'text-red-600'
 }
 
 export default function ExpenseTab({ siteId }: { siteId: string }) {
   const [settlement, setSettlement] = useState<Settlement | null>(null)
+  const [quotes, setQuotes]         = useState<Quote[]>([])
   const [materials, setMaterials]   = useState<Material[]>([])
   const [expenses, setExpenses]     = useState<SiteExpense[]>([])
   const [show, setShow]             = useState(false)
@@ -38,18 +50,22 @@ export default function ExpenseTab({ siteId }: { siteId: string }) {
       storage.settlements.get(siteId),
       storage.materials.list(),
       storage.siteExpenses.listBySite(siteId),
-    ]).then(([s, mats, exps]) => {
+      storage.quotes.list(),
+    ]).then(([s, mats, exps, qs]) => {
       setSettlement(s)
       setMaterials(mats.filter(m => m.siteId === siteId))
       setExpenses(exps)
+      setQuotes(qs.filter(q => q.siteId === siteId))
     })
   }, [siteId])
 
-  const materialCost   = materials.reduce((s, m) => s + m.qty * m.unitPrice, 0)
-  const laborCost      = expenses.filter(e => e.type === 'labor').reduce((s, e) => s + e.amount, 0)
-  const miscCost       = expenses.filter(e => e.type === 'misc').reduce((s, e) => s + e.amount, 0)
-  const totalCost      = materialCost + laborCost + miscCost
-  const contractTotal  = settlement?.contractTotal ?? 0
+  const materialCost        = materials.reduce((s, m) => s + m.qty * m.unitPrice, 0)
+  const orderedMaterialCost = expenses.filter(e => e.type === 'material').reduce((s, e) => s + e.amount, 0)
+  const laborCost           = expenses.filter(e => e.type === 'labor').reduce((s, e) => s + e.amount, 0)
+  const miscCost            = expenses.filter(e => e.type === 'misc').reduce((s, e) => s + e.amount, 0)
+  const totalCost           = materialCost + orderedMaterialCost + laborCost + miscCost
+
+  const contractTotal  = settlement?.contractTotal || calcQuoteTotal(quotes)
   const paidAmount     = settlement ? calcSettlementPaid(settlement) : 0
   const expectedMargin = contractTotal - totalCost
   const realizedMargin = paidAmount - totalCost
@@ -92,6 +108,9 @@ export default function ExpenseTab({ siteId }: { siteId: string }) {
     setExpenses(prev => prev.filter(x => x.id !== id))
   }
 
+  const modalTitle = activeType === 'labor' ? '인건비' : activeType === 'misc' ? '기타잡비' : '발주자재'
+  const modalPlaceholder = activeType === 'material' ? '예: 포세린타일 300×600' : activeType === 'labor' ? '예: 도배 인건비' : '예: 청소비'
+
   return (
     <div className="space-y-4">
       {/* 손익 요약 */}
@@ -113,24 +132,65 @@ export default function ExpenseTab({ siteId }: { siteId: string }) {
         </div>
       </div>
 
-      {/* 자재비 (자동 집계) */}
+      {/* 자재비 — 자재관리 탭 자동 집계 (읽기 전용) */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b bg-orange-50 border-orange-100">
-          <span className="text-sm font-semibold text-slate-700">자재비</span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-slate-700">자재비</span>
+            <span className="text-sm font-bold text-orange-600">{materialCost.toLocaleString()}원</span>
+          </div>
           <span className="text-xs text-slate-400">자재관리 탭에서 수정</span>
         </div>
-        <div className="px-4 py-3 flex justify-between items-center">
-          <span className="text-sm text-slate-500">{materials.length}건</span>
-          <span className="text-sm font-bold text-orange-600">{materialCost.toLocaleString()}원</span>
-        </div>
+        {materials.length === 0 ? (
+          <p className="text-xs text-slate-400 text-center py-4">등록된 자재가 없습니다.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs min-w-[380px]">
+              <thead className="bg-slate-50 text-slate-400">
+                <tr>
+                  {['품목 | 자재명', '수량', '단가', '금액'].map(h => (
+                    <th key={h} className="px-3 py-2 text-left font-medium whitespace-nowrap">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {materials.map(m => (
+                  <tr key={m.id} className="text-slate-600">
+                    <td className="px-3 py-2 font-medium text-slate-700">
+                      {m.category
+                        ? <><span className="text-slate-400 font-normal">{m.category}</span> | {m.name}</>
+                        : m.name}
+                    </td>
+                    <td className="px-3 py-2 whitespace-nowrap">{m.qty}{m.unit}</td>
+                    <td className="px-3 py-2 whitespace-nowrap">{m.unitPrice.toLocaleString()}원</td>
+                    <td className="px-3 py-2 font-medium text-orange-600 whitespace-nowrap">{(m.qty * m.unitPrice).toLocaleString()}원</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
+
+      {/* 발주자재 */}
+      <ExpenseSection
+        title="발주자재"
+        items={expenses.filter(e => e.type === 'material')}
+        total={orderedMaterialCost}
+        headerBg="bg-amber-50 border-amber-100"
+        totalColor="text-amber-600"
+        onAdd={() => openAdd('material')}
+        onEdit={openEdit}
+        onDelete={handleDelete}
+      />
 
       {/* 인건비 */}
       <ExpenseSection
         title="인건비"
-        type="labor"
         items={expenses.filter(e => e.type === 'labor')}
         total={laborCost}
+        headerBg="bg-blue-50 border-blue-100"
+        totalColor="text-blue-600"
         onAdd={() => openAdd('labor')}
         onEdit={openEdit}
         onDelete={handleDelete}
@@ -139,9 +199,10 @@ export default function ExpenseTab({ siteId }: { siteId: string }) {
       {/* 기타잡비 */}
       <ExpenseSection
         title="기타잡비"
-        type="misc"
         items={expenses.filter(e => e.type === 'misc')}
         total={miscCost}
+        headerBg="bg-slate-50 border-slate-100"
+        totalColor="text-slate-700"
         onAdd={() => openAdd('misc')}
         onEdit={openEdit}
         onDelete={handleDelete}
@@ -151,9 +212,7 @@ export default function ExpenseTab({ siteId }: { siteId: string }) {
       {show && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShow(false)}>
           <form onSubmit={handleSave} onClick={e => e.stopPropagation()} className="bg-white rounded-xl shadow-lg p-6 w-full max-w-sm space-y-3">
-            <h3 className="font-semibold text-slate-800">
-              {activeType === 'labor' ? '인건비' : '기타잡비'} {editId ? '수정' : '추가'}
-            </h3>
+            <h3 className="font-semibold text-slate-800">{modalTitle} {editId ? '수정' : '추가'}</h3>
             <div>
               <label className="text-xs text-slate-500 mb-1 block">품목</label>
               <input
@@ -175,7 +234,7 @@ export default function ExpenseTab({ siteId }: { siteId: string }) {
                 autoComplete="off"
                 value={form.description}
                 onChange={e => setForm({ ...form, description: e.target.value })}
-                placeholder="예: 도배 인건비"
+                placeholder={modalPlaceholder}
                 className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-slate-400"
               />
             </div>
@@ -225,18 +284,17 @@ export default function ExpenseTab({ siteId }: { siteId: string }) {
 }
 
 function ExpenseSection({
-  title, type, items, total, onAdd, onEdit, onDelete,
+  title, items, total, headerBg, totalColor, onAdd, onEdit, onDelete,
 }: {
   title: string
-  type: ExpenseType
   items: SiteExpense[]
   total: number
+  headerBg: string
+  totalColor: string
   onAdd: () => void
   onEdit: (exp: SiteExpense) => void
   onDelete: (id: string) => void
 }) {
-  const headerBg   = type === 'labor' ? 'bg-blue-50 border-blue-100' : 'bg-slate-50 border-slate-100'
-  const totalColor = type === 'labor' ? 'text-blue-600' : 'text-slate-700'
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <div className={`flex items-center justify-between px-4 py-3 border-b ${headerBg}`}>
@@ -259,7 +317,9 @@ function ExpenseSection({
             <div key={exp.id} className="px-4 py-3 flex items-center gap-3">
               <div className="flex-1 min-w-0">
                 <span className="text-sm font-medium text-slate-700">
-                  {exp.category ? <><span className="text-slate-400 font-normal">{exp.category}</span> | {exp.description}</> : exp.description}
+                  {exp.category
+                    ? <><span className="text-slate-400 font-normal">{exp.category}</span> | {exp.description}</>
+                    : exp.description}
                 </span>
                 <div className="flex items-center gap-3 mt-0.5 flex-wrap">
                   <span className="text-xs text-slate-500 font-medium">{exp.amount.toLocaleString()}원</span>

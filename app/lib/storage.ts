@@ -164,7 +164,7 @@ export interface ClientInquiry {
 export interface SiteExpense {
   id: string
   siteId: string
-  type: 'labor' | 'misc'
+  type: 'labor' | 'misc' | 'material'
   description: string
   amount: number
   date: string
