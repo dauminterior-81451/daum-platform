@@ -83,9 +83,7 @@ export interface Material {
   siteId: string
   name: string
   spec: string
-  qty: number
   unit: string
-  unitPrice: number
   supplier: string
   purchaseDate: string
   note: string
@@ -419,7 +417,13 @@ export const storage = {
       if (error) console.error('[storage:site_expenses]', error)
       return (data ?? []) as SiteExpense[]
     },
-    upsert: (item: SiteExpense) => upsertRow('site_expenses', item),
+    upsert: async (item: SiteExpense): Promise<void> => {
+      const { error } = await supabase.from('site_expenses').upsert(item as never)
+      if (error) {
+        console.error('[site_expenses:upsert] FAILED', { message: error.message, code: error.code })
+        throw new Error(error.message)
+      }
+    },
     remove: (id: string) => deleteRow('site_expenses', id),
   },
   emailLogs: {

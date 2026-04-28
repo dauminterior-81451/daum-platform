@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { Material, Quote, Settlement, SiteExpense, storage, Site } from '../lib/storage'
+import { Quote, Settlement, SiteExpense, storage, Site } from '../lib/storage'
 
 function calcQuoteTotal(quotes: Quote[], siteId: string): number {
   const sq = quotes.filter(q => q.siteId === siteId)
@@ -39,9 +39,8 @@ export default function DashboardPage() {
     Promise.all([
       storage.sites.list(),
       storage.quotes.list(),
-      storage.materials.list(),
       storage.siteExpenses.list(),
-    ]).then(async ([sites, quotes, materials, siteExpenses]) => {
+    ]).then(async ([sites, quotes, siteExpenses]) => {
       const settled = await Promise.all(
         sites.map(s => storage.settlements.get(s.id))
       )
@@ -59,13 +58,7 @@ export default function DashboardPage() {
         .slice(0, 5)
       const uniqueCustomers = new Set(sites.map(s => s.customerName).filter(Boolean)).size
 
-      let totalCost = 0
-      sites.forEach(site => {
-        const matCost   = (materials as Material[]).filter(m => m.siteId === site.id).reduce((s, m) => s + m.qty * m.unitPrice, 0)
-        const laborCost = (siteExpenses as SiteExpense[]).filter(e => e.siteId === site.id && e.type === 'labor').reduce((s, e) => s + e.amount, 0)
-        const miscCost  = (siteExpenses as SiteExpense[]).filter(e => e.siteId === site.id && e.type === 'misc').reduce((s, e) => s + e.amount, 0)
-        totalCost += matCost + laborCost + miscCost
-      })
+      const totalCost = (siteExpenses as SiteExpense[]).reduce((s, e) => s + e.amount, 0)
       const expectedMargin = totalQuote - totalCost
       const realizedMargin = totalPayment - totalCost
       const marginRate     = totalQuote > 0 ? Math.round((expectedMargin / totalQuote) * 100) : null

@@ -1052,15 +1052,14 @@ function PaymentTab({ siteId }: { siteId: string }) {
 }
 
 // ─── 자재관리 ─────────────────────────────────────────────────────────────────
-type MatForm = { name: string; spec: string; qty: number; unit: string; unitPrice: number; supplier: string; purchaseDate: string; note: string; category: string }
-const defaultMatForm = (): MatForm => ({ name: '', spec: '', qty: 1, unit: '개', unitPrice: 0, supplier: '', purchaseDate: new Date().toISOString().slice(0, 10), note: '', category: '' })
+type MatForm = { name: string; spec: string; unit: string; supplier: string; purchaseDate: string; note: string; category: string }
+const defaultMatForm = (): MatForm => ({ name: '', spec: '', unit: '개', supplier: '', purchaseDate: new Date().toISOString().slice(0, 10), note: '', category: '' })
 
 function MaterialTab({ siteId }: { siteId: string }) {
   const [list, setList]         = useState<Material[]>([])
   const [show, setShow]         = useState(false)
   const [editId, setEditId]     = useState<string | null>(null)
   const [form, setForm]         = useState<MatForm>(defaultMatForm())
-  const [priceInput, setPriceInput] = useState('0')
   const [matFiles, setMatFiles] = useState<MaterialFile[]>([])
   const [fileUploading, setFileUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -1074,7 +1073,9 @@ function MaterialTab({ siteId }: { siteId: string }) {
     e.preventDefault()
     if (!form.name.trim()) return
     if (editId) {
-      const updated: Material = { ...list.find(m => m.id === editId)!, ...form }
+      const base = list.find(m => m.id === editId)
+      if (!base) return
+      const updated: Material = { ...base, ...form }
       await storage.materials.upsert(updated)
       setList(prev => prev.map(m => m.id === editId ? updated : m))
     } else {
@@ -1087,8 +1088,7 @@ function MaterialTab({ siteId }: { siteId: string }) {
 
   function openEdit(m: Material) {
     setEditId(m.id)
-    setForm({ name: m.name, spec: m.spec ?? '', qty: m.qty, unit: m.unit, unitPrice: m.unitPrice, supplier: m.supplier ?? '', purchaseDate: m.purchaseDate, note: m.note, category: m.category ?? '' })
-    setPriceInput(m.unitPrice ? m.unitPrice.toLocaleString() : '0')
+    setForm({ name: m.name, spec: m.spec ?? '', unit: m.unit ?? '개', supplier: m.supplier ?? '', purchaseDate: m.purchaseDate, note: m.note, category: m.category ?? '' })
     setShow(true)
   }
 
@@ -1130,17 +1130,12 @@ function MaterialTab({ siteId }: { siteId: string }) {
     setMatFiles(prev => prev.filter(x => x.id !== f.id))
   }
 
-  const totalCost = list.reduce((s, m) => s + m.qty * m.unitPrice, 0)
-
   return (
     <div>
       {/* 자재 항목 */}
-      <div className="flex justify-between items-center mb-3">
-        <span className="text-sm text-slate-600">
-          총 자재비: <strong className="text-orange-600">{totalCost.toLocaleString()}원</strong>
-        </span>
+      <div className="flex justify-end items-center mb-3">
         <button
-          onClick={() => { setEditId(null); setForm(defaultMatForm()); setPriceInput('0'); setShow(true) }}
+          onClick={() => { setEditId(null); setForm(defaultMatForm()); setShow(true) }}
           className="bg-slate-900 text-white text-sm px-4 py-2 rounded-lg hover:bg-slate-800"
         >
           + 자재 추가
@@ -1236,49 +1231,6 @@ function MaterialTab({ siteId }: { siteId: string }) {
               />
             </div>
 
-            {/* 수량 */}
-            <div>
-              <label className="text-xs text-slate-500 mb-1 block">수량</label>
-              <input
-                type="text"
-                inputMode="numeric"
-                value={form.qty}
-                onChange={e => {
-                  const n = parseInt(e.target.value.replace(/[^0-9]/g, ''), 10)
-                  setForm({ ...form, qty: isNaN(n) ? 0 : n })
-                }}
-                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-slate-400"
-              />
-            </div>
-
-            {/* 단가 */}
-            <div>
-              <label className="text-xs text-slate-500 mb-1 block">단가</label>
-              <div className="flex items-center gap-1">
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={priceInput}
-                  onFocus={() => { if (priceInput === '0') setPriceInput('') }}
-                  onBlur={() => { if (!priceInput) { setPriceInput('0'); setForm(f => ({ ...f, unitPrice: 0 })) } }}
-                  onChange={e => {
-                    const raw = e.target.value.replace(/[^0-9]/g, '')
-                    const num = raw === '' ? 0 : parseInt(raw, 10)
-                    setPriceInput(raw === '' ? '' : num.toLocaleString())
-                    setForm(f => ({ ...f, unitPrice: num }))
-                  }}
-                  className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-slate-400 text-right"
-                />
-                <span className="text-sm text-slate-400 shrink-0">원</span>
-              </div>
-            </div>
-
-            {/* 금액 합계 */}
-            <div className="bg-slate-50 rounded-lg px-3 py-2 flex items-center justify-between">
-              <span className="text-xs text-slate-500">금액 합계</span>
-              <span className="text-sm font-semibold text-orange-600">{(form.qty * form.unitPrice).toLocaleString()}원</span>
-            </div>
-
             {/* 공급업체 */}
             <div>
               <label className="text-xs text-slate-500 mb-1 block">공급업체</label>
@@ -1318,7 +1270,7 @@ function MaterialTab({ siteId }: { siteId: string }) {
             <table className="w-full text-sm min-w-[640px]">
               <thead className="bg-slate-50 text-slate-400 text-xs">
                 <tr>
-                  {['자재명', '내용', '규격', '수량', '단가', '공급업체', '입고예정일', ''].map((h) => (
+                  {['자재명', '내용', '규격', '공급업체', '입고예정일', ''].map((h) => (
                     <th key={h} className="px-4 py-3 text-left font-medium whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -1333,8 +1285,6 @@ function MaterialTab({ siteId }: { siteId: string }) {
                       <span className="block truncate" title={m.note}>{m.note || '—'}</span>
                     </td>
                     <td className="px-4 py-3 text-slate-500">{m.spec || '—'}</td>
-                    <td className="px-4 py-3">{m.qty}{m.unit}</td>
-                    <td className="px-4 py-3">{m.unitPrice.toLocaleString()}원</td>
                     <td className="px-4 py-3 text-slate-500">{m.supplier || '—'}</td>
                     <td className="px-4 py-3 text-slate-500">{m.purchaseDate}</td>
                     <td className="px-4 py-3 text-right space-x-2 whitespace-nowrap">

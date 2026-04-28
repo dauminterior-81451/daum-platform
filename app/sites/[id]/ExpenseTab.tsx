@@ -96,18 +96,23 @@ export default function ExpenseTab({ siteId }: { siteId: string }) {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     if (!form.description.trim()) return
-    if (editId) {
-      const base = expenses.find(x => x.id === editId)
-      if (!base) return
-      const updated: SiteExpense = { ...base, ...form, type: activeType }
-      await storage.siteExpenses.upsert(updated)
-      setExpenses(prev => prev.map(x => x.id === editId ? updated : x))
-    } else {
-      const item: SiteExpense = { id: newId(), siteId, type: activeType, ...form }
-      await storage.siteExpenses.upsert(item)
-      setExpenses(prev => [...prev, item])
+    try {
+      if (editId) {
+        const base = expenses.find(x => x.id === editId)
+        if (!base) return
+        const updated: SiteExpense = { ...base, ...form, type: activeType }
+        await storage.siteExpenses.upsert(updated)
+        setExpenses(prev => prev.map(x => x.id === editId ? updated : x))
+      } else {
+        const item: SiteExpense = { id: newId(), siteId, type: activeType, ...form }
+        await storage.siteExpenses.upsert(item)
+        setExpenses(prev => [...prev, item])
+      }
+      setShow(false)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '저장에 실패했습니다.'
+      alert(`저장 실패: ${msg}`)
     }
-    setShow(false)
   }
 
   async function handleDelete(id: string) {

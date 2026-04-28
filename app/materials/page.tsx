@@ -35,7 +35,7 @@ export default function MaterialsPage() {
           <table className="w-full text-sm min-w-[640px]">
             <thead className="bg-slate-50 text-slate-500 text-xs">
               <tr>
-                {['현장명', '자재명', '규격', '수량', '단가', '공급업체', '구매일'].map(h => (
+                {['현장명', '자재명', '규격', '공급업체', '구매일'].map(h => (
                   <th key={h} className="px-4 py-3 text-left font-medium whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -48,8 +48,6 @@ export default function MaterialsPage() {
                   </td>
                   <td className="px-4 py-3 text-slate-800">{m.name}</td>
                   <td className="px-4 py-3 text-slate-500">{m.spec || '—'}</td>
-                  <td className="px-4 py-3 text-slate-700">{m.qty} {m.unit}</td>
-                  <td className="px-4 py-3 text-slate-700">{m.unitPrice > 0 ? `${m.unitPrice.toLocaleString()}원` : '—'}</td>
                   <td className="px-4 py-3 text-slate-500">{m.supplier || '—'}</td>
                   <td className="px-4 py-3 text-slate-400">{m.purchaseDate || '—'}</td>
                 </tr>
