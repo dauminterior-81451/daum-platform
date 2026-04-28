@@ -52,6 +52,7 @@ export default function ExpenseTab({ siteId }: { siteId: string }) {
   const [activeType, setActiveType] = useState<ExpenseType>('labor')
   const [editId, setEditId]         = useState<string | null>(null)
   const [form, setForm]             = useState<ExpenseForm>(defaultForm())
+  const [amountInput, setAmountInput] = useState('0')
 
   useEffect(() => {
     Promise.all([
@@ -80,6 +81,7 @@ export default function ExpenseTab({ siteId }: { siteId: string }) {
     setActiveType(type)
     setEditId(null)
     setForm(defaultForm())
+    setAmountInput('0')
     setShow(true)
   }
 
@@ -87,6 +89,7 @@ export default function ExpenseTab({ siteId }: { siteId: string }) {
     setActiveType(exp.type)
     setEditId(exp.id)
     setForm({ description: exp.description, amount: exp.amount, date: exp.date, memo: exp.memo, category: exp.category ?? '' })
+    setAmountInput(exp.amount ? exp.amount.toLocaleString() : '0')
     setShow(true)
   }
 
@@ -211,10 +214,17 @@ export default function ExpenseTab({ siteId }: { siteId: string }) {
               <label className="text-xs text-slate-500 mb-1 block">금액</label>
               <div className="flex items-center gap-1">
                 <input
-                  type="number"
-                  min={0}
-                  value={form.amount || ''}
-                  onChange={e => setForm({ ...form, amount: Number(e.target.value) })}
+                  type="text"
+                  inputMode="numeric"
+                  value={amountInput}
+                  onFocus={() => { if (amountInput === '0') setAmountInput('') }}
+                  onBlur={() => { if (!amountInput) { setAmountInput('0'); setForm(f => ({ ...f, amount: 0 })) } }}
+                  onChange={e => {
+                    const raw = e.target.value.replace(/[^0-9]/g, '')
+                    const num = raw === '' ? 0 : parseInt(raw, 10)
+                    setAmountInput(raw === '' ? '' : num.toLocaleString())
+                    setForm(f => ({ ...f, amount: num }))
+                  }}
                   placeholder="0"
                   className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-slate-400 text-right"
                 />

@@ -1318,7 +1318,7 @@ function MaterialTab({ siteId }: { siteId: string }) {
             <table className="w-full text-sm min-w-[640px]">
               <thead className="bg-slate-50 text-slate-400 text-xs">
                 <tr>
-                  {['자재명', '내용', '규격', '수량', '단가', '금액', '공급업체', '입고예정일', ''].map((h) => (
+                  {['자재명', '내용', '규격', '수량', '단가', '공급업체', '입고예정일', ''].map((h) => (
                     <th key={h} className="px-4 py-3 text-left font-medium whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -1335,7 +1335,6 @@ function MaterialTab({ siteId }: { siteId: string }) {
                     <td className="px-4 py-3 text-slate-500">{m.spec || '—'}</td>
                     <td className="px-4 py-3">{m.qty}{m.unit}</td>
                     <td className="px-4 py-3">{m.unitPrice.toLocaleString()}원</td>
-                    <td className="px-4 py-3 font-medium text-orange-600">{(m.qty * m.unitPrice).toLocaleString()}원</td>
                     <td className="px-4 py-3 text-slate-500">{m.supplier || '—'}</td>
                     <td className="px-4 py-3 text-slate-500">{m.purchaseDate}</td>
                     <td className="px-4 py-3 text-right space-x-2 whitespace-nowrap">
