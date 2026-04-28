@@ -418,11 +418,13 @@ export const storage = {
       return (data ?? []) as SiteExpense[]
     },
     upsert: async (item: SiteExpense): Promise<void> => {
+      console.log('[site_expenses:upsert] payload:', JSON.stringify(item))
       const { error } = await supabase.from('site_expenses').upsert(item as never)
       if (error) {
-        console.error('[site_expenses:upsert] FAILED', { message: error.message, code: error.code })
+        console.error('[site_expenses:upsert] FAILED', { message: error.message, code: error.code, details: error.details, hint: error.hint })
         throw new Error(error.message)
       }
+      console.log('[site_expenses:upsert] 성공')
     },
     remove: (id: string) => deleteRow('site_expenses', id),
   },

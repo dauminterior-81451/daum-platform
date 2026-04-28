@@ -101,10 +101,12 @@ export default function ExpenseTab({ siteId }: { siteId: string }) {
         const base = expenses.find(x => x.id === editId)
         if (!base) return
         const updated: SiteExpense = { ...base, ...form, type: activeType }
+        console.log('저장 데이터(수정):', JSON.stringify(updated))
         await storage.siteExpenses.upsert(updated)
         setExpenses(prev => prev.map(x => x.id === editId ? updated : x))
       } else {
         const item: SiteExpense = { id: newId(), siteId, type: activeType, ...form }
+        console.log('저장 데이터(신규):', JSON.stringify(item))
         await storage.siteExpenses.upsert(item)
         setExpenses(prev => [...prev, item])
       }
