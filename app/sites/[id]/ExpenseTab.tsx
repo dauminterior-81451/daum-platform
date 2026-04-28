@@ -72,7 +72,9 @@ export default function ExpenseTab({ siteId }: { siteId: string }) {
     e.preventDefault()
     if (!form.description.trim()) return
     if (editId) {
-      const updated: SiteExpense = { ...expenses.find(x => x.id === editId)!, ...form, type: activeType }
+      const base = expenses.find(x => x.id === editId)
+      if (!base) return
+      const updated: SiteExpense = { ...base, ...form, type: activeType }
       await storage.siteExpenses.upsert(updated)
       setExpenses(prev => prev.map(x => x.id === editId ? updated : x))
     } else {
@@ -146,8 +148,8 @@ export default function ExpenseTab({ siteId }: { siteId: string }) {
 
       {/* 입력 모달 */}
       {show && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <form onSubmit={handleSave} className="bg-white rounded-xl shadow-lg p-6 w-full max-w-sm space-y-3">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShow(false)}>
+          <form onSubmit={handleSave} onClick={e => e.stopPropagation()} className="bg-white rounded-xl shadow-lg p-6 w-full max-w-sm space-y-3">
             <h3 className="font-semibold text-slate-800">
               {activeType === 'labor' ? '인건비' : '기타잡비'} {editId ? '수정' : '추가'}
             </h3>
