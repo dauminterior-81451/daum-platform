@@ -22,10 +22,11 @@ import { fileStorage } from '../../lib/supabase'
 import ClientPageTab from './ClientPageTab'
 import DrawingTab from './DrawingTab'
 import ProcessTab from './ProcessTab'
+import ExpenseTab from './ExpenseTab'
 
-type Tab = '견적서' | '입금/정산' | '자재관리' | '도면' | 'AS관리' | '공정관리' | '고객페이지'
-const TABS: Tab[] = ['견적서', '입금/정산', '자재관리', '도면', 'AS관리', '공정관리', '고객페이지']
-const LOCKED_ON_PRE_CONTRACT: Tab[] = ['입금/정산', '자재관리', '도면', 'AS관리']
+type Tab = '견적서' | '입금/정산' | '자재관리' | '도면' | 'AS관리' | '공정관리' | '지출관리' | '고객페이지'
+const TABS: Tab[] = ['견적서', '입금/정산', '자재관리', '도면', 'AS관리', '공정관리', '지출관리', '고객페이지']
+const LOCKED_ON_PRE_CONTRACT: Tab[] = ['입금/정산', '자재관리', '도면', 'AS관리', '지출관리']
 
 const STATUS_BADGE: Record<SiteStatus, string> = {
   pre_contract: 'bg-slate-100 text-slate-600',
@@ -264,6 +265,7 @@ export default function SiteDetailPage() {
       {tab === '도면' && <DrawingTab siteId={id} />}
       {tab === 'AS관리' && <AsTab siteId={id} />}
       {tab === '공정관리' && <ProcessTab siteId={id} />}
+      {tab === '지출관리' && <ExpenseTab siteId={id} />}
       {tab === '고객페이지' && <ClientPageTab siteId={id} />}
 
       {/* 토스트 */}
