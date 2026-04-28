@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Material, Quote, Settlement, SiteExpense, newId, storage } from '../../lib/storage'
+import { Quote, Settlement, SiteExpense, newId, storage } from '../../lib/storage'
 
 type ExpenseType = 'labor' | 'misc' | 'material'
 type ExpenseForm = { description: string; amount: number; date: string; memo: string; category: string }
@@ -20,15 +20,24 @@ function calcSettlementPaid(s: Settlement): number {
     .reduce((sum, k) => sum + (s[k].amount || 0), 0)
 }
 
-// contractTotal이 0일 경우 최신 견적서 합계를 대체값으로 사용
-function calcQuoteTotal(quotes: Quote[]): number {
+// 견적서 공급가액 (부가세 제외) — items 합계 자체가 공급가액
+function calcSupplyPrice(quotes: Quote[]): number {
   if (quotes.length === 0) return 0
   const last = quotes.reduce((a, b) => (b.revision ?? 1) >= (a.revision ?? 1) ? b : a)
-  const supply = last.items
+  return last.items
     .filter(i => i.unit !== '__group__')
     .reduce((s, i) => s + i.qty * i.unitPrice, 0)
-  const tm = last.taxMode ?? 'exc'
-  return tm === 'exc' ? Math.round(supply * 1.1) : supply
+}
+
+// 계약 기준금액 (부가세 제외)
+// 견적서 있으면 공급가액 우선, 없으면 contractTotal에서 부가세 제거
+function getContractBase(settlement: Settlement | null, quotes: Quote[]): number {
+  const supply = calcSupplyPrice(quotes)
+  if (supply > 0) return supply
+  const total = settlement?.contractTotal ?? 0
+  if (total === 0) return 0
+  // 견적서 없는 경우: taxMode 미확인 → 부가세 포함 가정(÷1.1)
+  return Math.round(total / 1.1)
 }
 
 function marginColor(val: number): string {
@@ -38,7 +47,6 @@ function marginColor(val: number): string {
 export default function ExpenseTab({ siteId }: { siteId: string }) {
   const [settlement, setSettlement] = useState<Settlement | null>(null)
   const [quotes, setQuotes]         = useState<Quote[]>([])
-  const [materials, setMaterials]   = useState<Material[]>([])
   const [expenses, setExpenses]     = useState<SiteExpense[]>([])
   const [show, setShow]             = useState(false)
   const [activeType, setActiveType] = useState<ExpenseType>('labor')
@@ -48,28 +56,25 @@ export default function ExpenseTab({ siteId }: { siteId: string }) {
   useEffect(() => {
     Promise.all([
       storage.settlements.get(siteId),
-      storage.materials.list(),
       storage.siteExpenses.listBySite(siteId),
       storage.quotes.list(),
-    ]).then(([s, mats, exps, qs]) => {
+    ]).then(([s, exps, qs]) => {
       setSettlement(s)
-      setMaterials(mats.filter(m => m.siteId === siteId))
       setExpenses(exps)
       setQuotes(qs.filter(q => q.siteId === siteId))
     })
   }, [siteId])
 
-  const materialCost        = materials.reduce((s, m) => s + m.qty * m.unitPrice, 0)
   const orderedMaterialCost = expenses.filter(e => e.type === 'material').reduce((s, e) => s + e.amount, 0)
   const laborCost           = expenses.filter(e => e.type === 'labor').reduce((s, e) => s + e.amount, 0)
   const miscCost            = expenses.filter(e => e.type === 'misc').reduce((s, e) => s + e.amount, 0)
-  const totalCost           = materialCost + orderedMaterialCost + laborCost + miscCost
+  const totalCost           = orderedMaterialCost + laborCost + miscCost
 
-  const contractTotal  = settlement?.contractTotal || calcQuoteTotal(quotes)
+  const contractBase   = getContractBase(settlement, quotes)
   const paidAmount     = settlement ? calcSettlementPaid(settlement) : 0
-  const expectedMargin = contractTotal - totalCost
+  const expectedMargin = contractBase - totalCost
   const realizedMargin = paidAmount - totalCost
-  const marginRate     = contractTotal > 0 ? Math.round((expectedMargin / contractTotal) * 100) : null
+  const marginRate     = contractBase > 0 ? Math.round((expectedMargin / contractBase) * 100) : null
 
   function openAdd(type: ExpenseType) {
     setActiveType(type)
@@ -108,16 +113,20 @@ export default function ExpenseTab({ siteId }: { siteId: string }) {
     setExpenses(prev => prev.filter(x => x.id !== id))
   }
 
-  const modalTitle = activeType === 'labor' ? '인건비' : activeType === 'misc' ? '기타잡비' : '발주자재'
+  const modalTitle       = activeType === 'labor' ? '인건비' : activeType === 'misc' ? '기타잡비' : '발주자재'
   const modalPlaceholder = activeType === 'material' ? '예: 포세린타일 300×600' : activeType === 'labor' ? '예: 도배 인건비' : '예: 청소비'
 
   return (
     <div className="space-y-4">
-      {/* 손익 요약 */}
-      <div className="grid grid-cols-3 gap-3">
+      {/* 손익 요약 — 4열 */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-slate-50 rounded-xl p-3 text-center">
-          <p className="text-xs text-slate-400 mb-1">총 지출</p>
-          <p className="text-sm font-bold text-slate-700">{totalCost.toLocaleString()}원</p>
+          <p className="text-xs text-slate-400 mb-1">견적금액(부가세제외)</p>
+          <p className="text-sm font-bold text-slate-700">{contractBase.toLocaleString()}원</p>
+        </div>
+        <div className="bg-red-50 rounded-xl p-3 text-center">
+          <p className="text-xs text-red-400 mb-1">총 지출</p>
+          <p className="text-sm font-bold text-red-600">-{totalCost.toLocaleString()}원</p>
         </div>
         <div className={`rounded-xl p-3 text-center ${expectedMargin >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
           <p className="text-xs text-slate-400 mb-1">예상 마진</p>
@@ -130,46 +139,6 @@ export default function ExpenseTab({ siteId }: { siteId: string }) {
           <p className="text-xs text-slate-400 mb-1">실현 마진</p>
           <p className={`text-sm font-bold ${marginColor(realizedMargin)}`}>{realizedMargin.toLocaleString()}원</p>
         </div>
-      </div>
-
-      {/* 자재비 — 자재관리 탭 자동 집계 (읽기 전용) */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b bg-orange-50 border-orange-100">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-slate-700">자재비</span>
-            <span className="text-sm font-bold text-orange-600">{materialCost.toLocaleString()}원</span>
-          </div>
-          <span className="text-xs text-slate-400">자재관리 탭에서 수정</span>
-        </div>
-        {materials.length === 0 ? (
-          <p className="text-xs text-slate-400 text-center py-4">등록된 자재가 없습니다.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs min-w-[380px]">
-              <thead className="bg-slate-50 text-slate-400">
-                <tr>
-                  {['품목 | 자재명', '수량', '단가', '금액'].map(h => (
-                    <th key={h} className="px-3 py-2 text-left font-medium whitespace-nowrap">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {materials.map(m => (
-                  <tr key={m.id} className="text-slate-600">
-                    <td className="px-3 py-2 font-medium text-slate-700">
-                      {m.category
-                        ? <><span className="text-slate-400 font-normal">{m.category}</span> | {m.name}</>
-                        : m.name}
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap">{m.qty}{m.unit}</td>
-                    <td className="px-3 py-2 whitespace-nowrap">{m.unitPrice.toLocaleString()}원</td>
-                    <td className="px-3 py-2 font-medium text-orange-600 whitespace-nowrap">{(m.qty * m.unitPrice).toLocaleString()}원</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </div>
 
       {/* 발주자재 */}
