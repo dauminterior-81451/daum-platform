@@ -4,13 +4,14 @@ import { useEffect, useState } from 'react'
 import { Material, Settlement, SiteExpense, newId, storage } from '../../lib/storage'
 
 type ExpenseType = 'labor' | 'misc'
-type ExpenseForm = { description: string; amount: number; date: string; memo: string }
+type ExpenseForm = { description: string; amount: number; date: string; memo: string; category: string }
 
 const defaultForm = (): ExpenseForm => ({
   description: '',
   amount: 0,
   date: new Date().toISOString().slice(0, 10),
   memo: '',
+  category: '',
 })
 
 function calcSettlementPaid(s: Settlement): number {
@@ -64,7 +65,7 @@ export default function ExpenseTab({ siteId }: { siteId: string }) {
   function openEdit(exp: SiteExpense) {
     setActiveType(exp.type)
     setEditId(exp.id)
-    setForm({ description: exp.description, amount: exp.amount, date: exp.date, memo: exp.memo })
+    setForm({ description: exp.description, amount: exp.amount, date: exp.date, memo: exp.memo, category: exp.category ?? '' })
     setShow(true)
   }
 
@@ -153,6 +154,18 @@ export default function ExpenseTab({ siteId }: { siteId: string }) {
             <h3 className="font-semibold text-slate-800">
               {activeType === 'labor' ? '인건비' : '기타잡비'} {editId ? '수정' : '추가'}
             </h3>
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">품목</label>
+              <input
+                type="text"
+                lang="ko"
+                autoComplete="off"
+                value={form.category}
+                onChange={e => setForm({ ...form, category: e.target.value })}
+                placeholder="예: 욕실, 거실, 주방"
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-slate-400"
+              />
+            </div>
             <div>
               <label className="text-xs text-slate-500 mb-1 block">항목명 *</label>
               <input
@@ -245,7 +258,9 @@ function ExpenseSection({
           {items.map(exp => (
             <div key={exp.id} className="px-4 py-3 flex items-center gap-3">
               <div className="flex-1 min-w-0">
-                <span className="text-sm font-medium text-slate-700">{exp.description}</span>
+                <span className="text-sm font-medium text-slate-700">
+                  {exp.category ? <><span className="text-slate-400 font-normal">{exp.category}</span> | {exp.description}</> : exp.description}
+                </span>
                 <div className="flex items-center gap-3 mt-0.5 flex-wrap">
                   <span className="text-xs text-slate-500 font-medium">{exp.amount.toLocaleString()}원</span>
                   {exp.date && <span className="text-xs text-slate-400">{exp.date}</span>}

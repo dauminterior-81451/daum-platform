@@ -89,6 +89,7 @@ export interface Material {
   supplier: string
   purchaseDate: string
   note: string
+  category: string
 }
 
 export interface AsItem {
@@ -168,6 +169,7 @@ export interface SiteExpense {
   amount: number
   date: string
   memo: string
+  category: string
 }
 
 export interface EmailLog {

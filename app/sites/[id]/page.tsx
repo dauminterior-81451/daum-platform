@@ -1052,8 +1052,8 @@ function PaymentTab({ siteId }: { siteId: string }) {
 }
 
 // ─── 자재관리 ─────────────────────────────────────────────────────────────────
-type MatForm = { name: string; spec: string; qty: number; unit: string; unitPrice: number; supplier: string; purchaseDate: string; note: string }
-const defaultMatForm = (): MatForm => ({ name: '', spec: '', qty: 1, unit: '개', unitPrice: 0, supplier: '', purchaseDate: new Date().toISOString().slice(0, 10), note: '' })
+type MatForm = { name: string; spec: string; qty: number; unit: string; unitPrice: number; supplier: string; purchaseDate: string; note: string; category: string }
+const defaultMatForm = (): MatForm => ({ name: '', spec: '', qty: 1, unit: '개', unitPrice: 0, supplier: '', purchaseDate: new Date().toISOString().slice(0, 10), note: '', category: '' })
 
 function MaterialTab({ siteId }: { siteId: string }) {
   const [list, setList]         = useState<Material[]>([])
@@ -1087,7 +1087,7 @@ function MaterialTab({ siteId }: { siteId: string }) {
 
   function openEdit(m: Material) {
     setEditId(m.id)
-    setForm({ name: m.name, spec: m.spec ?? '', qty: m.qty, unit: m.unit, unitPrice: m.unitPrice, supplier: m.supplier ?? '', purchaseDate: m.purchaseDate, note: m.note })
+    setForm({ name: m.name, spec: m.spec ?? '', qty: m.qty, unit: m.unit, unitPrice: m.unitPrice, supplier: m.supplier ?? '', purchaseDate: m.purchaseDate, note: m.note, category: m.category ?? '' })
     setPriceInput(m.unitPrice ? m.unitPrice.toLocaleString() : '0')
     setShow(true)
   }
@@ -1151,6 +1151,20 @@ function MaterialTab({ siteId }: { siteId: string }) {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <form onSubmit={handleSave} className="bg-white rounded-xl shadow-lg p-6 w-full max-w-sm space-y-3 overflow-y-auto max-h-[90vh]">
             <h3 className="font-semibold text-slate-800">자재 {editId ? '수정' : '추가'}</h3>
+
+            {/* 품목 */}
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">품목</label>
+              <input
+                lang="ko"
+                type="text"
+                autoComplete="off"
+                value={form.category}
+                onChange={e => setForm({ ...form, category: e.target.value })}
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-slate-400"
+                placeholder="예: 욕실, 거실, 주방"
+              />
+            </div>
 
             {/* 자재명 */}
             <div>
@@ -1312,7 +1326,9 @@ function MaterialTab({ siteId }: { siteId: string }) {
               <tbody className="divide-y divide-slate-100">
                 {list.map((m) => (
                   <tr key={m.id} className="hover:bg-slate-50">
-                    <td className="px-4 py-3 font-medium text-slate-800">{m.name}</td>
+                    <td className="px-4 py-3 font-medium text-slate-800">
+                      {m.category ? <><span className="text-slate-400 font-normal">{m.category}</span> | {m.name}</> : m.name}
+                    </td>
                     <td className="px-4 py-3 text-slate-600 max-w-[160px]">
                       <span className="block truncate" title={m.note}>{m.note || '—'}</span>
                     </td>
