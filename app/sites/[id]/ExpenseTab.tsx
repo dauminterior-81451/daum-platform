@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Quote, Settlement, SiteExpense, newId, storage } from '../../lib/storage'
+import { ExtraPayment, Quote, Settlement, SiteExpense, newId, storage } from '../../lib/storage'
 
 type ExpenseType = 'labor' | 'misc' | 'material'
 type ExpenseForm = { description: string; amount: number; date: string; memo: string; category: string }
@@ -44,10 +44,18 @@ function marginColor(val: number): string {
   return val >= 0 ? 'text-green-700' : 'text-red-600'
 }
 
+const STAGE_LABELS: { key: 'deposit' | 'startup' | 'interim' | 'balance'; label: string }[] = [
+  { key: 'deposit', label: '계약금' },
+  { key: 'startup', label: '착수금' },
+  { key: 'interim', label: '중도금' },
+  { key: 'balance', label: '잔금' },
+]
+
 export default function ExpenseTab({ siteId }: { siteId: string }) {
   const [settlement, setSettlement] = useState<Settlement | null>(null)
   const [quotes, setQuotes]         = useState<Quote[]>([])
   const [expenses, setExpenses]     = useState<SiteExpense[]>([])
+  const [extraPayments, setExtraPayments] = useState<ExtraPayment[]>([])
   const [show, setShow]             = useState(false)
   const [activeType, setActiveType] = useState<ExpenseType>('labor')
   const [editId, setEditId]         = useState<string | null>(null)
@@ -59,10 +67,12 @@ export default function ExpenseTab({ siteId }: { siteId: string }) {
       storage.settlements.get(siteId),
       storage.siteExpenses.listBySite(siteId),
       storage.quotes.list(),
-    ]).then(([s, exps, qs]) => {
+      storage.extraPayments.listBySite(siteId),
+    ]).then(([s, exps, qs, extras]) => {
       setSettlement(s)
       setExpenses(exps)
       setQuotes(qs.filter(q => q.siteId === siteId))
+      setExtraPayments(extras)
     })
   }, [siteId])
 
@@ -186,6 +196,9 @@ export default function ExpenseTab({ siteId }: { siteId: string }) {
         onEdit={openEdit}
         onDelete={handleDelete}
       />
+
+      {/* 입금 현황 */}
+      <IncomingStatusSection settlement={settlement} extraPayments={extraPayments} />
 
       {/* 입력 모달 */}
       {show && (
@@ -321,6 +334,79 @@ function ExpenseSection({
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+function IncomingStatusSection({
+  settlement,
+  extraPayments,
+}: {
+  settlement: Settlement | null
+  extraPayments: ExtraPayment[]
+}) {
+  if (!settlement) return null
+
+  const stagePaidAmount = (['deposit', 'startup', 'interim', 'balance'] as const)
+    .filter(k => settlement[k].paid)
+    .reduce((sum, k) => sum + (settlement[k].amount || 0), 0)
+  const extraPaidAmount = extraPayments.filter(e => e.paid).reduce((sum, e) => sum + e.amount, 0)
+  const totalPaid = stagePaidAmount + extraPaidAmount
+  const contractTotal = settlement.contractTotal
+
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3 border-b bg-green-50 border-green-100">
+        <span className="text-sm font-semibold text-slate-700">입금 현황</span>
+        <span className="text-xs text-slate-400">입금/정산 탭에서 수정</span>
+      </div>
+      <div className="divide-y divide-slate-100">
+        {STAGE_LABELS.map(({ key, label }) => {
+          const stage = settlement[key]
+          const isPaid = stage.paid
+          const displayDate = isPaid ? stage.paidDate : stage.scheduledDate
+          return (
+            <div key={key} className="px-4 py-3 flex items-center gap-3">
+              <div className="w-14 text-xs text-slate-500 shrink-0">{label}</div>
+              <div className="flex-1 min-w-0">
+                <span className={`text-sm font-medium ${isPaid ? 'text-slate-700' : 'text-slate-400'}`}>
+                  {stage.amount ? stage.amount.toLocaleString() + '원' : '미설정'}
+                </span>
+                {displayDate && (
+                  <span className="text-xs text-slate-400 ml-2">{displayDate}</span>
+                )}
+              </div>
+              <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${isPaid ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'}`}>
+                {isPaid ? '완료' : '미수금'}
+              </span>
+            </div>
+          )
+        })}
+        {extraPayments.map(ep => (
+          <div key={ep.id} className="px-4 py-3 flex items-center gap-3">
+            <div className="w-14 text-xs text-slate-500 shrink-0">추가금</div>
+            <div className="flex-1 min-w-0">
+              <span className={`text-sm font-medium ${ep.paid ? 'text-slate-700' : 'text-slate-400'}`}>
+                {ep.title} {ep.amount.toLocaleString()}원
+              </span>
+              {ep.scheduledDate && (
+                <span className="text-xs text-slate-400 ml-2">{ep.scheduledDate}</span>
+              )}
+            </div>
+            <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${ep.paid ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-400'}`}>
+              {ep.paid ? '완료' : '미수금'}
+            </span>
+          </div>
+        ))}
+      </div>
+      <div className="px-4 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+        <span className="text-xs text-slate-500">총수금액 / 계약총액</span>
+        <div className="text-sm font-bold">
+          <span className="text-green-700">{totalPaid.toLocaleString()}원</span>
+          <span className="text-slate-400 mx-1">/</span>
+          <span className="text-slate-700">{contractTotal.toLocaleString()}원</span>
+        </div>
+      </div>
     </div>
   )
 }
