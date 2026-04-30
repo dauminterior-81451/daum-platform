@@ -10,9 +10,7 @@ function calcQuoteTotal(quotes: Quote[], siteId: string): number {
   const sq = quotes.filter(q => q.siteId === siteId)
   if (sq.length === 0) return 0
   const last = sq.reduce((a, b) => (b.revision ?? 1) >= (a.revision ?? 1) ? b : a)
-  const supply = last.items
-    .filter(i => i.unit !== '__group__')
-    .reduce((s, i) => s + i.qty * i.unitPrice, 0)
+  const supply = last.items.filter(i => i.unit !== '__group__').reduce((s, i) => s + i.qty * i.unitPrice, 0)
   const tm = last.taxMode ?? 'exc'
   return tm === 'exc' ? Math.round(supply * 1.1) : supply
 }
@@ -52,8 +50,14 @@ export default function PaymentsPage() {
       <h2 className="text-xl font-bold text-slate-800 mb-5">입금/정산</h2>
 
       {rows.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-          <p className="text-center text-slate-400 py-12 text-sm">현장이 없습니다.</p>
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-10 text-center">
+          <div className="text-4xl mb-3">💰</div>
+          <p className="font-semibold text-slate-700 mb-1">입금 데이터가 없습니다</p>
+          <p className="text-sm text-slate-400 mb-5">현장을 등록하면 입금/정산 관리를 시작할 수 있습니다.</p>
+          <Link href="/sites"
+            className="inline-flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-800 transition">
+            현장 등록하러 가기 →
+          </Link>
         </div>
       ) : (
         <>
@@ -70,21 +74,15 @@ export default function PaymentsPage() {
                     {status}
                   </span>
                 </div>
-                {site.customerName && (
-                  <p className="text-sm text-slate-500 mb-3">{site.customerName}</p>
-                )}
+                {site.customerName && <p className="text-sm text-slate-500 mb-3">{site.customerName}</p>}
                 <div className="grid grid-cols-3 gap-2 pt-3 border-t border-slate-100">
                   <div className="text-center">
                     <p className="text-xs text-slate-500 mb-1">계약금액</p>
-                    <p className="text-sm font-bold text-slate-700">
-                      {contractTotal > 0 ? contractTotal.toLocaleString() : '—'}
-                    </p>
+                    <p className="text-sm font-bold text-slate-700">{contractTotal > 0 ? contractTotal.toLocaleString() : '—'}</p>
                   </div>
                   <div className="text-center">
                     <p className="text-xs text-slate-500 mb-1">수금액</p>
-                    <p className="text-sm font-bold text-slate-700">
-                      {paid > 0 ? paid.toLocaleString() : '—'}
-                    </p>
+                    <p className="text-sm font-bold text-slate-700">{paid > 0 ? paid.toLocaleString() : '—'}</p>
                   </div>
                   <div className="text-center">
                     <p className="text-xs text-slate-500 mb-1">미수금</p>
@@ -114,19 +112,11 @@ export default function PaymentsPage() {
                       <Link href={`/sites/${site.id}`} className="hover:text-blue-600">{site.name}</Link>
                     </td>
                     <td className="px-4 py-3 text-slate-600">{site.customerName || '—'}</td>
-                    <td className="px-4 py-3 font-semibold text-slate-700">
-                      {contractTotal > 0 ? `${contractTotal.toLocaleString()}원` : '—'}
-                    </td>
-                    <td className="px-4 py-3 font-semibold text-slate-700">
-                      {paid > 0 ? `${paid.toLocaleString()}원` : '—'}
-                    </td>
-                    <td className="px-4 py-3 font-semibold text-red-600">
-                      {unpaid > 0 ? `${unpaid.toLocaleString()}원` : '—'}
-                    </td>
+                    <td className="px-4 py-3 font-semibold text-slate-700">{contractTotal > 0 ? `${contractTotal.toLocaleString()}원` : '—'}</td>
+                    <td className="px-4 py-3 font-semibold text-slate-700">{paid > 0 ? `${paid.toLocaleString()}원` : '—'}</td>
+                    <td className="px-4 py-3 font-semibold text-red-600">{unpaid > 0 ? `${unpaid.toLocaleString()}원` : '—'}</td>
                     <td className="px-4 py-3">
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLE[status]}`}>
-                        {status}
-                      </span>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLE[status]}`}>{status}</span>
                     </td>
                   </tr>
                 ))}

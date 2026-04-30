@@ -16,11 +16,9 @@ export default function EstimatesPage() {
         .map(q => {
           const site = siteMap.get(q.siteId)
           if (!site) return null
-          const supply = q.items
-            .filter(i => i.unit !== '__group__')
-            .reduce((s, i) => s + i.qty * i.unitPrice, 0)
-          const tm    = q.taxMode ?? 'exc'
-          const total = tm === 'exc' ? Math.round(supply * 1.1) : supply
+          const supply = q.items.filter(i => i.unit !== '__group__').reduce((s, i) => s + i.qty * i.unitPrice, 0)
+          const tm     = q.taxMode ?? 'exc'
+          const total  = tm === 'exc' ? Math.round(supply * 1.1) : supply
           return { quote: q, site, total }
         })
         .filter((r): r is Row => r !== null)
@@ -34,8 +32,14 @@ export default function EstimatesPage() {
       <h2 className="text-xl font-bold text-slate-800 mb-5">견적서</h2>
 
       {rows.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-          <p className="text-center text-slate-400 py-12 text-sm">견적서가 없습니다.</p>
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-10 text-center">
+          <div className="text-4xl mb-3">📄</div>
+          <p className="font-semibold text-slate-700 mb-1">작성된 견적서가 없습니다</p>
+          <p className="text-sm text-slate-400 mb-5">현장 상세 페이지에서 견적서를 작성할 수 있습니다.</p>
+          <Link href="/sites"
+            className="inline-flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-800 transition">
+            견적서 작성하러 가기 →
+          </Link>
         </div>
       ) : (
         <>
@@ -45,13 +49,10 @@ export default function EstimatesPage() {
               <div key={quote.id} className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="min-w-0 flex-1">
-                    <Link href={`/sites/${site.id}`}
-                      className="font-semibold text-slate-800 hover:text-blue-600 block truncate">
+                    <Link href={`/sites/${site.id}`} className="font-semibold text-slate-800 hover:text-blue-600 block truncate">
                       {site.name}
                     </Link>
-                    {site.customerName && (
-                      <p className="text-sm text-slate-500 mt-0.5">{site.customerName}</p>
-                    )}
+                    {site.customerName && <p className="text-sm text-slate-500 mt-0.5">{site.customerName}</p>}
                   </div>
                   <span className="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-600 font-medium shrink-0">
                     {quote.revision ?? 1}차
@@ -93,9 +94,7 @@ export default function EstimatesPage() {
                     <td className="px-4 py-3 text-slate-500">{quote.date}</td>
                     <td className="px-4 py-3 text-right">
                       <Link href={`/sites/${site.id}/quotes/${quote.id}/preview`}
-                        className="text-xs text-blue-600 hover:underline font-medium">
-                        미리보기
-                      </Link>
+                        className="text-xs text-blue-600 hover:underline font-medium">미리보기</Link>
                     </td>
                   </tr>
                 ))}

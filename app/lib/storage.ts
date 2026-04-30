@@ -190,6 +190,15 @@ export interface QuoteTemplate {
   createdAt: string
 }
 
+export interface CompanySettings {
+  id: string
+  name: string
+  logoUrl?: string
+  ceoName?: string
+  phone?: string
+  address?: string
+}
+
 // ── 공통 헬퍼 ──────────────────────────────────────────────────────────────────
 async function select<T>(table: string): Promise<T[]> {
   const { data, error } = await supabase.from(table).select('*')
@@ -462,6 +471,36 @@ export const storage = {
     list: (): Promise<QuoteTemplate[]> => select<QuoteTemplate>('quote_templates'),
     upsert: (item: QuoteTemplate) => upsertRow('quote_templates', item),
     remove: (id: string) => deleteRow('quote_templates', id),
+  },
+  companySettings: {
+    get: async (): Promise<CompanySettings | null> => {
+      const { data, error } = await supabase
+        .from('company_settings')
+        .select('*')
+        .eq('id', 'default')
+        .maybeSingle()
+      if (error) console.error('[storage:company_settings:get]', error)
+      if (!data) return null
+      return {
+        id:      data.id,
+        name:    data.name,
+        logoUrl: data.logo_url  ?? undefined,
+        ceoName: data.ceo_name  ?? undefined,
+        phone:   data.phone     ?? undefined,
+        address: data.address   ?? undefined,
+      }
+    },
+    save: async (s: Omit<CompanySettings, 'id'>): Promise<void> => {
+      const { error } = await supabase.from('company_settings').upsert({
+        id:       'default',
+        name:     s.name,
+        logo_url: s.logoUrl ?? null,
+        ceo_name: s.ceoName ?? null,
+        phone:    s.phone   ?? null,
+        address:  s.address ?? null,
+      } as never)
+      if (error) throw new Error(error.message)
+    },
   },
 }
 

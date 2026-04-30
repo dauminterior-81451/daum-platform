@@ -31,9 +31,7 @@ export default function SitesPage() {
   const [filterStatus, setFilterStatus] = useState<SiteStatus | '전체'>('전체')
   const [searchQuery, setSearchQuery]   = useState('')
 
-  useEffect(() => {
-    storage.sites.list().then(setSites)
-  }, [])
+  useEffect(() => { storage.sites.list().then(setSites) }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -66,6 +64,8 @@ export default function SitesPage() {
     setSites(prev => prev.filter(s => s.id !== id))
   }
 
+  function openNew() { setForm(emptyForm); setEditId(null); setShowForm(true) }
+
   const q = searchQuery.trim().toLowerCase()
   const filtered = sites
     .filter(s => filterStatus === '전체' || s.status === filterStatus)
@@ -76,18 +76,14 @@ export default function SitesPage() {
       (s.address ?? '').toLowerCase().includes(q)
     )
 
-  const emptyMessage = sites.length === 0 ? '등록된 현장이 없습니다.' : '검색 결과가 없습니다.'
-
   const inputCls = 'w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-slate-400'
 
   return (
     <div className="p-4 md:p-6">
       <div className="flex items-center justify-between mb-5">
         <h2 className="text-xl font-bold text-slate-800">현장관리</h2>
-        <button
-          onClick={() => { setForm(emptyForm); setEditId(null); setShowForm(true) }}
-          className="bg-slate-900 text-white text-sm px-4 py-2.5 rounded-lg hover:bg-slate-800 transition min-h-[44px]"
-        >
+        <button onClick={openNew}
+          className="bg-slate-900 text-white text-sm px-4 py-2.5 rounded-lg hover:bg-slate-800 transition min-h-[44px]">
           + 현장 등록
         </button>
       </div>
@@ -97,18 +93,12 @@ export default function SitesPage() {
         <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
         </svg>
-        <input
-          type="text"
-          placeholder="현장명, 고객명, 주소 검색"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-400 bg-white"
-        />
+        <input type="text" placeholder="현장명, 고객명, 주소 검색"
+          value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-400 bg-white" />
         {searchQuery && (
           <button onClick={() => setSearchQuery('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-            ✕
-          </button>
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">✕</button>
         )}
       </div>
 
@@ -134,7 +124,6 @@ export default function SitesPage() {
             <div className="px-6 pt-6 pb-4 border-b border-slate-100">
               <h3 className="font-semibold text-slate-800">{editId ? '현장 수정' : '현장 등록'}</h3>
             </div>
-
             <div className="overflow-y-auto flex-1 px-6 py-4 space-y-4">
               <div>
                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">고객 정보</p>
@@ -153,27 +142,23 @@ export default function SitesPage() {
                   ))}
                 </div>
               </div>
-
               <div>
                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">현장 정보</p>
                 <div className="space-y-3">
                   <div>
                     <label className="text-xs text-slate-500 mb-1 block">현장명 *</label>
                     <input type="text" required value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      className={inputCls} />
+                      onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputCls} />
                   </div>
                   <div>
                     <label className="text-xs text-slate-500 mb-1 block">주소</label>
                     <input type="text" value={form.address}
-                      onChange={(e) => setForm({ ...form, address: e.target.value })}
-                      className={inputCls} />
+                      onChange={(e) => setForm({ ...form, address: e.target.value })} className={inputCls} />
                   </div>
                   <div>
                     <label className="text-xs text-slate-500 mb-1 block">착공일</label>
                     <input type="date" value={form.startDate}
-                      onChange={(e) => setForm({ ...form, startDate: e.target.value })}
-                      className={inputCls} />
+                      onChange={(e) => setForm({ ...form, startDate: e.target.value })} className={inputCls} />
                   </div>
                   <div>
                     <label className="text-xs text-slate-500 mb-1 block">상태</label>
@@ -188,13 +173,11 @@ export default function SitesPage() {
                   <div>
                     <label className="text-xs text-slate-500 mb-1 block">메모</label>
                     <input type="text" value={form.memo}
-                      onChange={(e) => setForm({ ...form, memo: e.target.value })}
-                      className={inputCls} />
+                      onChange={(e) => setForm({ ...form, memo: e.target.value })} className={inputCls} />
                   </div>
                 </div>
               </div>
             </div>
-
             <div className="px-6 py-4 border-t border-slate-100 flex gap-2">
               <button type="submit"
                 className="flex-1 bg-slate-900 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-slate-800 transition min-h-[44px]">
@@ -209,45 +192,57 @@ export default function SitesPage() {
         </div>
       )}
 
+      {/* 빈 화면 — 현장 없을 때 */}
+      {sites.length === 0 && (
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-10 text-center">
+          <div className="text-4xl mb-3">🏠</div>
+          <p className="font-semibold text-slate-700 mb-1">아직 등록된 현장이 없습니다</p>
+          <p className="text-sm text-slate-400 mb-5">첫 번째 현장을 등록해 업무를 시작해 보세요.</p>
+          <button onClick={openNew}
+            className="inline-flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-800 transition">
+            + 현장 등록
+          </button>
+        </div>
+      )}
+
+      {/* 검색 결과 없음 */}
+      {sites.length > 0 && filtered.length === 0 && (
+        <p className="text-center text-slate-400 py-12 text-sm">검색 결과가 없습니다.</p>
+      )}
+
       {/* 모바일 카드 */}
-      <div className="md:hidden space-y-3">
-        {filtered.length === 0 ? (
-          <p className="text-center text-slate-400 py-12 text-sm">{emptyMessage}</p>
-        ) : filtered.map((s) => (
-          <div key={s.id} className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-            <div className="flex items-start justify-between gap-2 mb-2">
-              <div className="flex-1 min-w-0">
-                <Link href={`/sites/${s.id}`} className="font-semibold text-slate-800 hover:text-blue-600 block truncate">
-                  {s.name}
-                </Link>
-                {s.customerName && (
-                  <p className="text-sm text-slate-500 mt-0.5">
-                    {s.customerName}{s.customerPhone && ` · ${s.customerPhone}`}
-                  </p>
-                )}
+      {filtered.length > 0 && (
+        <div className="md:hidden space-y-3">
+          {filtered.map((s) => (
+            <div key={s.id} className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="flex-1 min-w-0">
+                  <Link href={`/sites/${s.id}`} className="font-semibold text-slate-800 hover:text-blue-600 block truncate">{s.name}</Link>
+                  {s.customerName && (
+                    <p className="text-sm text-slate-500 mt-0.5">{s.customerName}{s.customerPhone && ` · ${s.customerPhone}`}</p>
+                  )}
+                </div>
+                <span className={`text-xs px-2 py-1 rounded-full font-medium shrink-0 ${STATUS_BADGE[s.status]}`}>
+                  {SITE_STATUS_LABELS[s.status]}
+                </span>
               </div>
-              <span className={`text-xs px-2 py-1 rounded-full font-medium shrink-0 ${STATUS_BADGE[s.status]}`}>
-                {SITE_STATUS_LABELS[s.status]}
-              </span>
-            </div>
-            {s.address && <p className="text-xs text-slate-400 mb-2 truncate">{s.address}</p>}
-            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-              <span className="text-xs text-slate-400">{s.startDate || ''}</span>
-              <div className="flex gap-3">
-                <Link href={`/sites/${s.id}`} className="text-xs text-blue-600 font-medium min-h-[44px] flex items-center">상세</Link>
-                <button onClick={() => handleEdit(s)} className="text-xs text-slate-500 min-h-[44px] flex items-center">수정</button>
-                <button onClick={() => handleDelete(s.id)} className="text-xs text-red-500 min-h-[44px] flex items-center">삭제</button>
+              {s.address && <p className="text-xs text-slate-400 mb-2 truncate">{s.address}</p>}
+              <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                <span className="text-xs text-slate-400">{s.startDate || ''}</span>
+                <div className="flex gap-3">
+                  <Link href={`/sites/${s.id}`} className="text-xs text-blue-600 font-medium min-h-[44px] flex items-center">상세</Link>
+                  <button onClick={() => handleEdit(s)} className="text-xs text-slate-500 min-h-[44px] flex items-center">수정</button>
+                  <button onClick={() => handleDelete(s.id)} className="text-xs text-red-500 min-h-[44px] flex items-center">삭제</button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* 데스크탑 테이블 */}
-      <div className="hidden md:block bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        {filtered.length === 0 ? (
-          <p className="text-center text-slate-400 py-12 text-sm">{emptyMessage}</p>
-        ) : (
+      {filtered.length > 0 && (
+        <div className="hidden md:block bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-slate-500 text-xs border-b border-slate-100">
               <tr>
@@ -280,8 +275,8 @@ export default function SitesPage() {
               ))}
             </tbody>
           </table>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }

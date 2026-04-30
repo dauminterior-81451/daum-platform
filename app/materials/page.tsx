@@ -13,11 +13,7 @@ export default function MaterialsPage() {
     Promise.all([storage.materials.list(), storage.sites.list()]).then(([materials, sites]) => {
       const siteMap = new Map(sites.map(s => [s.id, s]))
       const r: Row[] = materials
-        .map(m => {
-          const site = siteMap.get(m.siteId)
-          if (!site) return null
-          return { material: m, site }
-        })
+        .map(m => { const site = siteMap.get(m.siteId); return site ? { material: m, site } : null })
         .filter((r): r is Row => r !== null)
         .sort((a, b) => b.material.purchaseDate.localeCompare(a.material.purchaseDate))
       setRows(r)
@@ -29,8 +25,10 @@ export default function MaterialsPage() {
       <h2 className="text-xl font-bold text-slate-800 mb-5">자재관리</h2>
 
       {rows.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-          <p className="text-center text-slate-400 py-12 text-sm">자재 내역이 없습니다.</p>
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-10 text-center">
+          <div className="text-4xl mb-3">📦</div>
+          <p className="font-semibold text-slate-700 mb-1">등록된 자재가 없습니다</p>
+          <p className="text-sm text-slate-400">현장 상세 페이지의 자재관리 탭에서 자재를 등록할 수 있습니다.</p>
         </div>
       ) : (
         <>
@@ -41,22 +39,16 @@ export default function MaterialsPage() {
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold text-slate-800 truncate">
-                      {m.category
-                        ? <><span className="text-slate-400 font-normal">{m.category} · </span>{m.name}</>
-                        : m.name
-                      }
+                      {m.category ? <><span className="text-slate-400 font-normal">{m.category} · </span>{m.name}</> : m.name}
                     </p>
                     {m.spec && <p className="text-xs text-slate-400 mt-0.5">{m.spec}</p>}
                   </div>
-                  <Link href={`/sites/${site.id}`}
-                    className="text-xs text-blue-600 font-medium shrink-0 hover:underline">
+                  <Link href={`/sites/${site.id}`} className="text-xs text-blue-600 font-medium shrink-0 hover:underline">
                     {site.name}
                   </Link>
                 </div>
                 <div className="flex items-center gap-3 pt-2 border-t border-slate-100">
-                  {m.supplier && (
-                    <span className="text-xs text-slate-500">{m.supplier}</span>
-                  )}
+                  {m.supplier && <span className="text-xs text-slate-500">{m.supplier}</span>}
                   <span className="text-xs text-slate-400 ml-auto">{m.purchaseDate || '—'}</span>
                 </div>
               </div>
@@ -80,10 +72,7 @@ export default function MaterialsPage() {
                       <Link href={`/sites/${site.id}`} className="hover:text-blue-600">{site.name}</Link>
                     </td>
                     <td className="px-4 py-3 text-slate-800">
-                      {m.category
-                        ? <><span className="text-slate-400">{m.category}</span> | {m.name}</>
-                        : m.name
-                      }
+                      {m.category ? <><span className="text-slate-400">{m.category}</span> | {m.name}</> : m.name}
                     </td>
                     <td className="px-4 py-3 text-slate-500">{m.spec || '—'}</td>
                     <td className="px-4 py-3 text-slate-500">{m.supplier || '—'}</td>
