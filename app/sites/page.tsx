@@ -28,6 +28,7 @@ export default function SitesPage() {
   const [editId, setEditId]         = useState<string | null>(null)
   const [showForm, setShowForm]     = useState(false)
   const [filterStatus, setFilterStatus] = useState<SiteStatus | '전체'>('전체')
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     storage.sites.list().then(setSites)
@@ -72,8 +73,15 @@ export default function SitesPage() {
     setSites(prev => prev.filter(s => s.id !== id))
   }
 
-  const filtered =
-    filterStatus === '전체' ? sites : sites.filter(s => s.status === filterStatus)
+  const q = searchQuery.trim().toLowerCase()
+  const filtered = sites
+    .filter(s => filterStatus === '전체' || s.status === filterStatus)
+    .filter(s =>
+      !q ||
+      s.name.toLowerCase().includes(q) ||
+      (s.customerName ?? '').toLowerCase().includes(q) ||
+      (s.address ?? '').toLowerCase().includes(q)
+    )
 
   const FILTER_OPTIONS: ({ key: SiteStatus | '전체'; label: string })[] = [
     { key: '전체',         label: '전체'   },
@@ -81,6 +89,10 @@ export default function SitesPage() {
     { key: 'in_progress',  label: '진행중' },
     { key: 'completed',    label: '완료'   },
   ]
+
+  const emptyMessage = sites.length === 0
+    ? '등록된 현장이 없습니다.'
+    : '검색 결과가 없습니다.'
 
   return (
     <div className="p-4 md:p-6">
@@ -94,6 +106,29 @@ export default function SitesPage() {
         </button>
       </div>
 
+      {/* 검색바 */}
+      <div className="relative mb-3">
+        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+        </svg>
+        <input
+          type="text"
+          placeholder="현장명, 고객명, 주소 검색"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery('')}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+
+      {/* 상태 필터 */}
       <div className="flex gap-2 mb-4 flex-wrap">
         {FILTER_OPTIONS.map(({ key, label }) => (
           <button
@@ -210,7 +245,7 @@ export default function SitesPage() {
       {/* 모바일 카드 목록 */}
       <div className="md:hidden space-y-3">
         {filtered.length === 0 ? (
-          <p className="text-center text-gray-400 py-12 text-sm">등록된 현장이 없습니다.</p>
+          <p className="text-center text-gray-400 py-12 text-sm">{emptyMessage}</p>
         ) : filtered.map((s) => (
           <div key={s.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
             <div className="flex items-start justify-between gap-2 mb-2">
@@ -242,7 +277,7 @@ export default function SitesPage() {
       {/* 데스크탑 테이블 */}
       <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         {filtered.length === 0 ? (
-          <p className="text-center text-gray-400 py-12 text-sm">등록된 현장이 없습니다.</p>
+          <p className="text-center text-gray-400 py-12 text-sm">{emptyMessage}</p>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-gray-500 text-xs">
