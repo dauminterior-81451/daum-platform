@@ -11,6 +11,7 @@ import {
   newId,
   Quote,
   QuoteItem,
+  QuoteTemplate,
   Settlement,
   Site,
   SITE_STATUS_LABELS,
@@ -348,6 +349,10 @@ function QuoteTab({ siteId }: { siteId: string }) {
   const [note, setNote]       = useState('')
   const [groups, setGroups]       = useState<LocalGroup[]>([makeGroup()])
   const [taxMode, setTaxMode]     = useState<'exc' | 'inc' | 'none'>('exc')
+  const [showTplSave, setShowTplSave] = useState(false)
+  const [tplName, setTplName]         = useState('')
+  const [showTplLoad, setShowTplLoad] = useState(false)
+  const [templates, setTemplates]     = useState<QuoteTemplate[]>([])
   const isComposing = useRef(false)
 
   function focusNext(el: HTMLElement) {
@@ -413,6 +418,36 @@ function QuoteTab({ siteId }: { siteId: string }) {
     setQuotes(prev => prev.filter(q => q.id !== id))
   }
 
+  async function handleSaveTemplate() {
+    if (!tplName.trim()) return
+    const tmpl: QuoteTemplate = {
+      id: newId(),
+      name: tplName.trim(),
+      items: flattenGroups(groups),
+      createdAt: new Date().toISOString().slice(0, 10),
+    }
+    await storage.quoteTemplates.upsert(tmpl)
+    setTemplates(prev => [...prev, tmpl])
+    setTplName('')
+    setShowTplSave(false)
+  }
+
+  async function openTplLoad() {
+    const list = await storage.quoteTemplates.list()
+    setTemplates(list.sort((a, b) => b.createdAt.localeCompare(a.createdAt)))
+    setShowTplLoad(true)
+  }
+
+  function applyTemplate(tmpl: QuoteTemplate) {
+    setGroups(parseGroups(tmpl.items))
+    setShowTplLoad(false)
+  }
+
+  async function deleteTpl(id: string) {
+    await storage.quoteTemplates.remove(id)
+    setTemplates(prev => prev.filter(t => t.id !== id))
+  }
+
   // 그룹 조작
   function addGroup(name = '') { setGroups(g => [...g, makeGroup(name)]) }
   function removeGroup(gid: string) { setGroups(g => g.filter(x => x.id !== gid)) }
@@ -462,7 +497,13 @@ function QuoteTab({ siteId }: { siteId: string }) {
             {/* 모달 헤더 */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
               <h3 className="font-semibold text-slate-800">견적서 {editId ? '수정' : '작성'}</h3>
-              <button type="button" onClick={() => setShow(false)} className="text-slate-400 hover:text-slate-600">✕</button>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={openTplLoad}
+                  className="text-xs px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition">
+                  템플릿 불러오기
+                </button>
+                <button type="button" onClick={() => setShow(false)} className="text-slate-400 hover:text-slate-600 text-lg leading-none">✕</button>
+              </div>
             </div>
 
             {/* 스크롤 영역 */}
@@ -618,11 +659,77 @@ function QuoteTab({ siteId }: { siteId: string }) {
             </div>
 
             {/* 저장/취소 */}
-            <div className="flex gap-2 px-6 py-4 border-t border-slate-100 shrink-0">
-              <button type="button" onClick={handleSave} className="flex-1 bg-slate-900 text-white py-2 rounded-lg text-sm hover:bg-slate-800">저장</button>
-              <button type="button" onClick={() => setShow(false)} className="flex-1 border border-slate-200 py-2 rounded-lg text-sm hover:bg-slate-50">취소</button>
+            <div className="px-6 py-4 border-t border-slate-100 shrink-0 space-y-2">
+              <button type="button" onClick={() => { setTplName(''); setShowTplSave(true) }}
+                className="w-full border border-dashed border-slate-300 text-slate-500 py-2 rounded-lg text-xs hover:bg-slate-50 transition">
+                현재 항목을 템플릿으로 저장
+              </button>
+              <div className="flex gap-2">
+                <button type="button" onClick={handleSave} className="flex-1 bg-slate-900 text-white py-2 rounded-lg text-sm hover:bg-slate-800">저장</button>
+                <button type="button" onClick={() => setShow(false)} className="flex-1 border border-slate-200 py-2 rounded-lg text-sm hover:bg-slate-50">취소</button>
+              </div>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* 템플릿 저장 모달 */}
+      {showTplSave && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm space-y-4">
+            <h3 className="font-semibold text-slate-800">템플릿으로 저장</h3>
+            <div>
+              <label className="text-xs text-slate-500 mb-1 block">템플릿명</label>
+              <input
+                type="text"
+                value={tplName}
+                onChange={e => setTplName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleSaveTemplate() }}
+                placeholder="예: 욕실 리모델링 기본"
+                autoFocus
+                lang="ko"
+                autoComplete="off"
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-slate-400"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={handleSaveTemplate} className="flex-1 bg-slate-900 text-white py-2 rounded-lg text-sm hover:bg-slate-800">저장</button>
+              <button onClick={() => setShowTplSave(false)} className="flex-1 border border-slate-200 py-2 rounded-lg text-sm hover:bg-slate-50">취소</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 템플릿 불러오기 모달 */}
+      {showTplLoad && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
+              <h3 className="font-semibold text-slate-800">템플릿 불러오기</h3>
+              <button onClick={() => setShowTplLoad(false)} className="text-slate-400 hover:text-slate-600 text-lg leading-none">✕</button>
+            </div>
+            <div className="overflow-y-auto flex-1 p-4 space-y-2">
+              {templates.length === 0 ? (
+                <p className="text-center text-slate-400 py-8 text-sm">저장된 템플릿이 없습니다.</p>
+              ) : templates.map(t => (
+                <div key={t.id} className="flex items-center justify-between p-3 rounded-lg border border-slate-200 hover:border-slate-300">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-slate-700 truncate">{t.name}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {t.items.filter(i => i.unit === '__group__').length}개 품목 · {t.createdAt}
+                    </p>
+                  </div>
+                  <div className="flex gap-2 shrink-0 ml-2">
+                    <button onClick={() => applyTemplate(t)}
+                      className="text-xs px-3 py-1.5 rounded-lg bg-slate-900 text-white hover:bg-slate-800">
+                      불러오기
+                    </button>
+                    <button onClick={() => deleteTpl(t.id)} className="text-xs text-red-500 hover:underline">삭제</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 

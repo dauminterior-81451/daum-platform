@@ -183,6 +183,13 @@ export interface EmailLog {
   sentAt: string
 }
 
+export interface QuoteTemplate {
+  id: string
+  name: string
+  items: QuoteItem[]
+  createdAt: string
+}
+
 // ── 공통 헬퍼 ──────────────────────────────────────────────────────────────────
 async function select<T>(table: string): Promise<T[]> {
   const { data, error } = await supabase.from(table).select('*')
@@ -450,6 +457,11 @@ export const storage = {
       const { error } = await supabase.from('email_logs').insert(log)
       if (error) console.error('[storage:email_logs:insert]', error)
     },
+  },
+  quoteTemplates: {
+    list: (): Promise<QuoteTemplate[]> => select<QuoteTemplate>('quote_templates'),
+    upsert: (item: QuoteTemplate) => upsertRow('quote_templates', item),
+    remove: (id: string) => deleteRow('quote_templates', id),
   },
 }
 
