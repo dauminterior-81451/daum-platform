@@ -58,7 +58,7 @@ export default function DashboardPage() {
         .slice(0, 5)
       const uniqueCustomers = new Set(sites.map(s => s.customerName).filter(Boolean)).size
 
-      const totalCost = (siteExpenses as SiteExpense[]).reduce((s, e) => s + e.amount, 0)
+      const totalCost      = (siteExpenses as SiteExpense[]).reduce((s, e) => s + e.amount, 0)
       const expectedMargin = totalQuote - totalCost
       const realizedMargin = totalPayment - totalCost
       const marginRate     = totalQuote > 0 ? Math.round((expectedMargin / totalQuote) * 100) : null
@@ -131,8 +131,8 @@ export default function DashboardPage() {
         </Link>
       </div>
 
-      {/* 마진 현황 */}
-      <div className="grid grid-cols-3 gap-3 mb-5">
+      {/* 마진 현황 — 모바일 1열, sm 이상 3열 */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
         <div className="bg-white border border-slate-200 rounded-xl px-4 py-4">
           <p className="text-xs text-slate-400 mb-1.5">총 지출</p>
           <p className="text-2xl font-bold text-slate-800">{data.totalCost.toLocaleString()}원</p>
@@ -165,36 +165,56 @@ export default function DashboardPage() {
         {data.recentSites.length === 0 ? (
           <p className="text-sm text-slate-400 text-center py-10">등록된 현장이 없습니다.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[480px]">
-              <thead>
-                <tr className="bg-slate-50 text-left text-xs text-slate-500">
-                  <th className="px-4 md:px-5 py-3 font-medium">현장명</th>
-                  <th className="px-4 md:px-5 py-3 font-medium">주소</th>
-                  <th className="px-4 md:px-5 py-3 font-medium text-center">상태</th>
-                  <th className="px-4 md:px-5 py-3 font-medium text-right">시작일</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.recentSites.map((s) => (
-                  <tr key={s.id} className="border-t border-slate-100 hover:bg-slate-50 transition-colors">
-                    <td className="px-4 md:px-5 py-3">
-                      <Link href={`/sites/${s.id}`} className="font-medium text-slate-800 hover:text-slate-600">
-                        {s.name}
-                      </Link>
-                    </td>
-                    <td className="px-4 md:px-5 py-3 text-slate-500 truncate max-w-[120px] md:max-w-[180px]">{s.address || '—'}</td>
-                    <td className="px-4 md:px-5 py-3 text-center">
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLE[s.status] ?? 'bg-slate-100 text-slate-500'}`}>
-                        {STATUS_LABEL[s.status] ?? s.status}
-                      </span>
-                    </td>
-                    <td className="px-4 md:px-5 py-3 text-right text-slate-400 whitespace-nowrap">{s.startDate || '—'}</td>
+          <>
+            {/* 모바일 카드 */}
+            <div className="md:hidden divide-y divide-slate-100">
+              {data.recentSites.map((s) => (
+                <div key={s.id} className="px-4 py-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <Link href={`/sites/${s.id}`} className="font-medium text-slate-800 text-sm block truncate">
+                      {s.name}
+                    </Link>
+                    <p className="text-xs text-slate-400 mt-0.5">{s.startDate || '—'}</p>
+                  </div>
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${STATUS_STYLE[s.status] ?? 'bg-slate-100 text-slate-500'}`}>
+                    {STATUS_LABEL[s.status] ?? s.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* 데스크탑 테이블 */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm min-w-[480px]">
+                <thead>
+                  <tr className="bg-slate-50 text-left text-xs text-slate-500">
+                    <th className="px-5 py-3 font-medium">현장명</th>
+                    <th className="px-5 py-3 font-medium">주소</th>
+                    <th className="px-5 py-3 font-medium text-center">상태</th>
+                    <th className="px-5 py-3 font-medium text-right">시작일</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {data.recentSites.map((s) => (
+                    <tr key={s.id} className="border-t border-slate-100 hover:bg-slate-50 transition-colors">
+                      <td className="px-5 py-3">
+                        <Link href={`/sites/${s.id}`} className="font-medium text-slate-800 hover:text-slate-600">
+                          {s.name}
+                        </Link>
+                      </td>
+                      <td className="px-5 py-3 text-slate-500 truncate max-w-[180px]">{s.address || '—'}</td>
+                      <td className="px-5 py-3 text-center">
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLE[s.status] ?? 'bg-slate-100 text-slate-500'}`}>
+                          {STATUS_LABEL[s.status] ?? s.status}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3 text-right text-slate-400 whitespace-nowrap">{s.startDate || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
     </div>
