@@ -1,8 +1,18 @@
 @import "tailwindcss";
 
+/* ── 커스텀 컬러 토큰 (Tailwind v4: @theme 블록) ── */
+@theme {
+  --color-primary:  #1e293b;  /* slate-800  — 주요 액션 버튼, 헤더 */
+  --color-accent:   #3b82f6;  /* blue-500   — 보조 강조, 링크 */
+  --color-success:  #22c55e;  /* green-500  — 완납/완료 */
+  --color-danger:   #ef4444;  /* red-500    — 미수금/삭제/경고 */
+  --color-muted:    #64748b;  /* slate-500  — 보조 텍스트 */
+  --color-bg:       #f8fafc;  /* slate-50   — 페이지 배경 */
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8fafc;
+  --foreground: #0f172a;
 }
 
 @theme inline {
@@ -12,19 +22,12 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* 스크롤바 숨김 — 탭 등 가로 스크롤 영역 */
+/* 스크롤바 숨김 */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
