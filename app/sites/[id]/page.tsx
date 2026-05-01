@@ -73,7 +73,40 @@ export default function SiteDetailPage() {
   async function handleStatusChange(next: SiteStatus) {
     if (!site) return
     if (!confirm(`상태를 "${SITE_STATUS_LABELS[next]}"(으)로 변경하시겠습니까?`)) return
+
+    const today = new Date().toISOString().slice(0, 10)
     const updated: Site = { ...site, status: next }
+
+    if (next === 'in_progress') {
+      updated.startDate = today
+
+      const [quotes, settlement] = await Promise.all([
+        storage.quotes.list(),
+        storage.settlements.get(site.id),
+      ])
+
+      if (!settlement?.contractTotal) {
+        const siteQuotes = quotes.filter(q => q.siteId === site.id)
+        if (siteQuotes.length > 0) {
+          const latest = siteQuotes.reduce((a, b) => ((b.revision ?? 1) >= (a.revision ?? 1) ? b : a))
+          const supply = latest.items.filter(i => i.unit !== '__group__').reduce((s, i) => s + i.qty * i.unitPrice, 0)
+          const tm = latest.taxMode ?? 'exc'
+          const totalPrice = tm === 'exc' ? Math.round(supply * 1.1) : supply
+          if (totalPrice > 0) {
+            const base: Settlement = settlement ?? {
+              siteId: site.id,
+              contractTotal: 0,
+              deposit: { amount: 0, ratio: 0.1, scheduledDate: '', paidDate: '', paid: false },
+              startup: { amount: 0, ratio: 0.4, scheduledDate: '', paidDate: '', paid: false },
+              interim: { amount: 0, ratio: 0.4, scheduledDate: '', paidDate: '', paid: false },
+              balance: { amount: 0, ratio: 0.1, scheduledDate: '', paidDate: '', paid: false },
+            }
+            await storage.settlements.save(site.id, { ...base, contractTotal: totalPrice })
+          }
+        }
+      }
+    }
+
     await storage.sites.upsert(updated)
     setSite(updated)
   }
@@ -949,9 +982,13 @@ function PaymentTab({ siteId }: { siteId: string }) {
         <label className="text-xs text-slate-500 mb-1.5 block font-medium">계약 총액</label>
         <div className="flex items-center gap-2">
           <input
-            type="number" min={0}
-            value={data.contractTotal || ''}
-            onChange={(e) => handleContractTotalChange(Number(e.target.value))}
+            type="text"
+            inputMode="numeric"
+            value={data.contractTotal ? data.contractTotal.toLocaleString() : ''}
+            onChange={(e) => {
+              const raw = e.target.value.replace(/[^0-9]/g, '')
+              handleContractTotalChange(Number(raw) || 0)
+            }}
             placeholder="0"
             className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-slate-400 text-right"
           />

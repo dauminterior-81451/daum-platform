@@ -228,7 +228,7 @@ export default function SitesPage() {
               </div>
               {s.address && <p className="text-xs text-slate-400 mb-2 truncate">{s.address}</p>}
               <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                <span className="text-xs text-slate-400">{s.startDate || ''}</span>
+                <span className="text-xs text-slate-400">{s.startDate ? `착공 ${s.startDate}` : ''}{s.createdAt ? ` · 등록 ${s.createdAt.slice(0, 10)}` : ''}</span>
                 <div className="flex gap-3">
                   <Link href={`/sites/${s.id}`} className="text-xs text-blue-600 font-medium min-h-[44px] flex items-center">상세</Link>
                   <button onClick={() => handleEdit(s)} className="text-xs text-slate-500 min-h-[44px] flex items-center">수정</button>
@@ -246,7 +246,7 @@ export default function SitesPage() {
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-slate-500 text-xs border-b border-slate-100">
               <tr>
-                {['고객명', '연락처', '이메일', '현장명', '주소', '상태', ''].map((h) => (
+                {['고객명', '연락처', '이메일', '현장명', '주소', '상태', '등록일', ''].map((h) => (
                   <th key={h} className="px-4 py-3 text-left font-medium whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -266,6 +266,7 @@ export default function SitesPage() {
                       {SITE_STATUS_LABELS[s.status]}
                     </span>
                   </td>
+                  <td className="px-4 py-3 text-slate-400 whitespace-nowrap text-xs">{s.createdAt?.slice(0, 10) || '—'}</td>
                   <td className="px-4 py-3 text-right space-x-3 whitespace-nowrap">
                     <Link href={`/sites/${s.id}`} className="text-xs text-blue-600 hover:underline">상세</Link>
                     <button onClick={() => handleEdit(s)} className="text-xs text-slate-500 hover:underline">수정</button>

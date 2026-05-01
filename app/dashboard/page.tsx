@@ -187,7 +187,7 @@ export default function DashboardPage() {
               {data.recentSites.map((s) => (
                 <div key={s.id} className="px-5 py-3.5 flex items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <Link href={`/sites/${s.id}`} className="font-medium text-slate-800 text-sm block truncate">{s.name}</Link>
+                    <Link href={`/sites/${s.id}`} className="font-medium text-slate-800 text-sm block truncate">{s.name || s.customerName || '이름없음'}</Link>
                     <p className="text-xs text-slate-400 mt-0.5">{s.startDate || '—'}</p>
                   </div>
                   <span className={`text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${STATUS_STYLE[s.status] ?? 'bg-slate-100 text-slate-500'}`}>
@@ -210,7 +210,7 @@ export default function DashboardPage() {
                   {data.recentSites.map((s) => (
                     <tr key={s.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-5 py-3">
-                        <Link href={`/sites/${s.id}`} className="font-medium text-slate-800 hover:text-blue-600">{s.name}</Link>
+                        <Link href={`/sites/${s.id}`} className="font-medium text-slate-800 hover:text-blue-600">{s.name || s.customerName || '이름없음'}</Link>
                       </td>
                       <td className="px-5 py-3 text-slate-500 truncate max-w-[180px]">{s.address || '—'}</td>
                       <td className="px-5 py-3 text-center">
