@@ -79,32 +79,6 @@ export default function SiteDetailPage() {
 
     if (next === 'in_progress') {
       updated.startDate = today
-
-      const [quotes, settlement] = await Promise.all([
-        storage.quotes.list(),
-        storage.settlements.get(site.id),
-      ])
-
-      if (!settlement?.contractTotal) {
-        const siteQuotes = quotes.filter(q => q.siteId === site.id)
-        if (siteQuotes.length > 0) {
-          const latest = siteQuotes.reduce((a, b) => ((b.revision ?? 1) >= (a.revision ?? 1) ? b : a))
-          const supply = latest.items.filter(i => i.unit !== '__group__').reduce((s, i) => s + i.qty * i.unitPrice, 0)
-          const tm = latest.taxMode ?? 'exc'
-          const totalPrice = tm === 'exc' ? Math.round(supply * 1.1) : supply
-          if (totalPrice > 0) {
-            const base: Settlement = settlement ?? {
-              siteId: site.id,
-              contractTotal: 0,
-              deposit: { amount: 0, ratio: 0.1, scheduledDate: '', paidDate: '', paid: false },
-              startup: { amount: 0, ratio: 0.4, scheduledDate: '', paidDate: '', paid: false },
-              interim: { amount: 0, ratio: 0.4, scheduledDate: '', paidDate: '', paid: false },
-              balance: { amount: 0, ratio: 0.1, scheduledDate: '', paidDate: '', paid: false },
-            }
-            await storage.settlements.save(site.id, { ...base, contractTotal: totalPrice })
-          }
-        }
-      }
     }
 
     await storage.sites.upsert(updated)
